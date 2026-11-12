@@ -7,7 +7,7 @@ const L = new Schema({ en: { type: String, default: "" }, hi: String }, { _id: f
 const Geo = new Schema({ lat: Number, lng: Number }, { _id: false });
 const Seo = new Schema({ title: L, description: L }, { _id: false });
 
-export const PERMISSIONS = ["projects", "taxonomy", "testimonials", "landing", "settings"] as const;
+export const PERMISSIONS = ["projects", "taxonomy", "testimonials", "landing", "settings", "analytics"] as const;
 export const PROJECT_SECTIONS = ["overview", "floorPlans", "videos", "documents", "amenities", "location", "similar"] as const;
 export const LANDING_SECTIONS = ["trust", "about", "locations", "topProjects", "types", "testimonials", "contact"] as const;
 
@@ -156,3 +156,17 @@ export const User = m(
     { timestamps: true },
   ),
 );
+
+/** First-party page views: one row per project slug per day (IST time). No cookies, no IPs, no personal data. */
+export const PageView = m(
+  "PageView",
+  new Schema(
+    {
+      slug: { type: String, required: true },
+      day: { type: String, required: true }, // YYYY-MM-DD, Asia/Kolkata
+      views: { type: Number, default: 0 },
+    },
+    { versionKey: false },
+  ).index({ slug: 1, day: 1 }, { unique: true }).index({ day: 1 }),
+);
+

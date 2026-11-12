@@ -17,9 +17,9 @@ export default async function ProjectsPage({ params, searchParams }: PageProps<"
   if (!hasLang(lang)) notFound();
   const dict = getDictionary(lang);
   return (
-    <div className="mx-auto max-w-5xl px-4 py-4">
+    <div className="mx-auto max-w-6xl px-4 py-4">
       <Breadcrumb items={[{ name: dict.nav.home, href: `/${lang}` }, { name: dict.nav.projects }]} />
-      <h1 className="mb-4 text-2xl font-bold">{dict.nav.projects}</h1>
+      <h1 className="mb-4 text-2xl font-bold sm:text-3xl lg:text-4xl">{dict.nav.projects}</h1>
       <Browse lang={lang} list={await getProjects()} sp={searchParams} path={`/${lang}/projects`} filter />
     </div>
   );

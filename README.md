@@ -20,7 +20,12 @@ npm run dev                  # http://localhost:3000  → /en, admin at /admin
 
 ## Deploy (Vercel + Atlas + Cloudinary)
 1. Atlas cluster → `MONGODB_URI`; allow Vercel IPs (or 0.0.0.0/0 with strong password).
-2. Vercel project → env vars from `.env.example` (`CLOUDINARY_URL` required on Vercel, its filesystem is read-only).
+2. Vercel project → env vars from `.env.example` (`CLOUDINARY_URL` + `NEXT_PUBLIC_MEDIA_URL=https://res.cloudinary.com/<cloud>/image/upload` required for uploads).
 3. Cloudinary: Settings → Security → allow "PDF and ZIP files delivery" so brochures download.
 4. After first deploy: `npm run create-superadmin -- <name>` with production `MONGODB_URI`.
 5. Search Console: add domain property, submit `/sitemap.xml`. Google Business Profile: link to `/en`.
+
+## Analytics (admin dashboard)
+- **Project page views**: counted by the site itself (`/api/track`, stored per project per day in `pageviews`). Works out of the box.
+- **Google Search Console** (clicks, impressions, CTR, position, top searches): Google Cloud → enable *Google Search Console API* → service account → JSON key. In Search Console add the service account email as a user on the property. Set `GSC_CLIENT_EMAIL`, `GSC_PRIVATE_KEY` (the key with `\n` line breaks) and `GSC_SITE_URL` (`sc-domain:example.com` or `https://www.example.com/`).
+- Who sees it: superadmin, or admins with the `analytics` permission (Users page).

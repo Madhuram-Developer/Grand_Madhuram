@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ActionBar } from "@/components/admin/ActionBar";
+import { DeleteButton } from "@/components/admin/DeleteButton";
 import { DocForm } from "@/components/admin/Form";
+import { ButtonLink, Card } from "@/components/kit";
 import { getEntity, listDocs, loadDoc } from "@/lib/admin";
 import { requirePerm } from "@/lib/auth";
 
@@ -13,9 +16,8 @@ export default async function EntityList({ params }: PageProps<"/admin/[entity]"
   if (e.singleton) {
     const [doc, tabs] = await Promise.all([loadDoc(entity), e.tabs()]);
     return (
-      <div className="grid max-w-4xl gap-4">
-        <h1 className="text-xl font-bold">{e.title}</h1>
-        <DocForm entity={entity} id={doc?._id ?? null} initial={doc} tabs={tabs} />
+      <div className="max-w-4xl">
+        <DocForm entity={entity} id={doc?._id ?? null} initial={doc} tabs={tabs} title={e.title} />
       </div>
     );
   }
@@ -23,20 +25,22 @@ export default async function EntityList({ params }: PageProps<"/admin/[entity]"
   const rows = await listDocs(entity);
   return (
     <div className="grid max-w-4xl gap-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">{e.title}</h1>
-        <Link href={`/admin/${entity}/new`} className="rounded-md bg-brand px-4 py-1.5 text-sm font-medium text-brand-ink">+ New</Link>
-      </div>
-      <ul className="divide-y divide-line rounded-md border border-line bg-surface">
+      <ActionBar title={e.title}>
+        <ButtonLink href={`/admin/${entity}/new`}>+ New {e.title.toLowerCase().replace(/s$/, "")}</ButtonLink>
+      </ActionBar>
+      <Card className="overflow-hidden">
+        <ul className="divide-y divide-line">
         {rows.map((r) => (
-          <li key={r.id}>
-            <Link href={`/admin/${entity}/${r.id}`} className="flex justify-between px-3 py-2 text-sm hover:bg-bg">
-              <span className="font-medium">{r.label}</span> <span className="text-muted">{r.sub}</span>
+          <li key={r.id} className="flex items-center gap-2 pr-3 hover:bg-surface-2">
+            <Link href={`/admin/${entity}/${r.id}`} className="flex min-w-0 flex-1 items-center justify-between gap-3 px-4 py-3 text-sm">
+              <span className="truncate font-medium">{r.label}</span> <span className="shrink-0 text-muted">{r.sub}</span>
             </Link>
+            <DeleteButton entity={entity} id={r.id} label={r.label} />
           </li>
         ))}
-        {!rows.length && <li className="px-3 py-2 text-sm text-muted">Nothing yet.</li>}
-      </ul>
+        {!rows.length && <li className="px-4 py-3 text-sm text-muted">Nothing yet.</li>}
+        </ul>
+      </Card>
     </div>
   );
 }

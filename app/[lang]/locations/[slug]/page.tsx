@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Browse } from "@/components/Browse";
+import { ButtonLink, Card } from "@/components/kit";
 import { Breadcrumb, Img, Row, WaIcon } from "@/components/ui";
 import { getLocations, getProjects, getSettings } from "@/lib/data";
 import { getDictionary, hasLang, langs, t } from "@/lib/i18n";
@@ -53,33 +54,33 @@ export default async function LocationPage({ params, searchParams }: PageProps<"
   ];
 
   return (
-    <div className="mx-auto grid max-w-5xl grid-cols-[minmax(0,1fr)] gap-6 px-4 py-4">
+    <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)] gap-6 px-4 py-4">
       <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(ld)} />
       <div>
         <Breadcrumb items={crumbs} />
-        <h1 className="text-2xl font-bold">{dict.location.heading.replace("{city}", name)}</h1>
-        {t(loc.seoIntro, lang) && <p className="mt-2 text-muted">{t(loc.seoIntro, lang)}</p>}
+        <h1 className="text-2xl font-bold sm:text-3xl lg:text-4xl">{dict.location.heading.replace("{city}", name)}</h1>
+        {t(loc.seoIntro, lang) && <p className="mt-2 text-muted lg:text-lg">{t(loc.seoIntro, lang)}</p>}
       </div>
       {list.length ? (
         <Browse lang={lang} list={list} sp={searchParams} path={`/${lang}/locations/${slug}`} pills={["type", "locality"]} />
       ) : (
-        <div className="rounded-xl border border-line bg-surface p-6 text-center">
-          <p className="mb-4 font-medium">{dict.location.comingSoon}</p>
-          <a href={waLink(settings?.whatsappNumber, t(settings?.enquiryMsg, lang))} target="_blank" rel="noopener" className="inline-flex items-center gap-2 rounded-lg bg-wa px-4 py-2.5 font-medium text-wa-ink">
+        <Card className="p-6 text-center lg:p-10">
+          <p className="mb-4 font-medium lg:text-lg">{dict.location.comingSoon}</p>
+          <ButtonLink href={waLink(settings?.whatsappNumber, t(settings?.enquiryMsg, lang))} external variant="wa" size="lg">
             <WaIcon /> {dict.contact.whatsapp}
-          </a>
-        </div>
+          </ButtonLink>
+        </Card>
       )}
       {others.length > 0 && (
         <section>
-          <h2 className="mb-3 text-lg font-bold">{dict.location.other}</h2>
+          <h2 className="mb-4 text-xl font-bold lg:text-2xl">{dict.location.other}</h2>
           <Row>
             {others.map((l) => (
-              <Link key={l._id} href={`/${lang}/locations/${l.slug}`} className="flex w-20 shrink-0 flex-col items-center gap-1">
-                <span className="relative aspect-square w-full overflow-hidden rounded-full border-2 border-accent bg-line">
-                  {l.image && <Img src={l.image} alt="" fill sizes="80px" className="object-cover" />}
+              <Link key={l._id} href={`/${lang}/locations/${l.slug}`} className="group flex w-20 shrink-0 flex-col items-center gap-2 lg:w-28">
+                <span className="relative aspect-square w-full overflow-hidden rounded-full border-2 border-brand bg-line group-hover:border-accent">
+                  {l.image && <Img src={l.image} alt="" fill sizes="112px" className="object-cover" />}
                 </span>
-                <span className="text-center text-xs">{t(l.name, lang)}</span>
+                <span className="text-center text-xs group-hover:text-accent lg:text-sm">{t(l.name, lang)}</span>
               </Link>
             ))}
           </Row>

@@ -3,12 +3,16 @@ import Image, { type ImageProps } from "next/image";
 import Link from "next/link";
 import type { Ctx, ProjectT } from "@/lib/data";
 import { t, type Dict, type Lang } from "@/lib/i18n";
+import { media } from "@/lib/media";
 import { priceLink } from "@/lib/site";
+import { Badge, ButtonLink, Card } from "./kit";
 
 // ponytail: next/image only optimizes whitelisted hosts; anything else renders as-is instead of crashing
 const OPTIMIZABLE = /^(\/|https:\/\/(res\.cloudinary\.com|picsum\.photos)\/)/;
+/** All site images go through here: stored path → full URL via media(), then next/image. */
 export function Img(props: ImageProps & { src: string }) {
-  return <Image {...props} alt={props.alt} unoptimized={!OPTIMIZABLE.test(props.src)} />;
+  const src = media(props.src);
+  return <Image {...props} src={src} alt={props.alt} unoptimized={!OPTIMIZABLE.test(src)} />;
 }
 
 export function WaIcon({ className = "size-5" }: { className?: string }) {
@@ -22,20 +26,21 @@ export function WaIcon({ className = "size-5" }: { className?: string }) {
 export function SectionTitle({ title, subtitle }: { title?: string; subtitle?: string }) {
   if (!title && !subtitle) return null;
   return (
-    <div className="mb-4">
-      {title && <h2 className="text-xl font-bold sm:text-2xl">{title}</h2>}
-      {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
+    <div className="mb-5">
+      {title && <h2 className="text-xl font-bold sm:text-2xl lg:text-3xl">{title}</h2>}
+      {subtitle && <p className="mt-1 text-sm text-muted lg:text-base">{subtitle}</p>}
     </div>
   );
 }
 
 /** Horizontal scroll row on phones, wraps on desktop. */
 export function Row({ children }: { children: React.ReactNode }) {
-  return <div className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none]">{children}</div>;
+  // scroll-px matches px: snap points respect the padding, so the first card keeps its gutter instead of snapping flush left
+  return <div className="-mx-4 flex snap-x scroll-px-4 gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] lg:gap-5">{children}</div>;
 }
 
 export function Grid({ children }: { children: React.ReactNode }) {
-  return <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">{children}</div>;
+  return <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 lg:gap-5">{children}</div>;
 }
 
 export const cityOf = (p: ProjectT, ctx: Ctx, lang: Lang) => t(ctx.locations.find((l) => l._id === p.location)?.name, lang);
@@ -50,19 +55,19 @@ export function ProjectCard({ p, ctx, lang, dict, inRow }: { p: ProjectT; ctx: C
   const configs = (p.configs ?? []).map((c) => t(c.label, lang)).join(", ");
   const H = inRow ? "h3" : "h2"; // rows sit under a section h2; grids sit under the page h1
   return (
-    <article className={`flex flex-col overflow-hidden rounded-xl border border-line bg-surface ${inRow ? "w-[150px] shrink-0 snap-start sm:w-[200px] lg:w-[240px]" : "w-full max-w-[240px]"}`}>
-      <Link href={href} className="relative block aspect-[4/3] bg-line">
-        {img?.url && <Img src={img.url} alt={t(img.alt, lang) || t(p.name, lang)} fill sizes="(min-width:1024px) 240px, (min-width:640px) 200px, 150px" className="object-cover" />}
-        {t(p.badge, lang) && <span className="absolute left-2 top-2 rounded bg-badge px-1.5 py-0.5 text-[10px] font-medium text-badge-ink">{t(p.badge, lang)}</span>}
+    <Card className={`group flex flex-col overflow-hidden transition-colors hover:border-brand ${inRow ? "w-[160px] shrink-0 snap-start sm:w-[220px] lg:w-[260px]" : "w-full"}`}>
+      <Link href={href} className="relative block aspect-[4/3] overflow-hidden bg-line">
+        {img?.url && <Img src={img.url} alt={t(img.alt, lang) || t(p.name, lang)} fill sizes="(min-width:1024px) 280px, (min-width:640px) 220px, 50vw" className="object-cover transition-transform duration-300 group-hover:scale-105" />}
+        {t(p.badge, lang) && <Badge className="absolute left-2 top-2">{t(p.badge, lang)}</Badge>}
       </Link>
-      <div className="flex flex-1 flex-col gap-1 p-2.5">
-        {type && <span className="text-[11px] uppercase tracking-wide text-brand">{t(type.name, lang)}</span>}
-        <H className="text-sm font-bold leading-tight">
-          <Link href={href}>{t(p.name, lang)}</Link>
+      <div className="flex flex-1 flex-col gap-1 p-3 lg:p-4">
+        {type && <span className="text-[11px] uppercase tracking-wider text-brand lg:text-xs">{t(type.name, lang)}</span>}
+        <H className="text-sm font-bold leading-tight lg:text-lg">
+          <Link href={href} className="hover:text-accent">{t(p.name, lang)}</Link>
         </H>
-        <p className="text-xs text-muted">{[t(p.locality, lang), city].filter(Boolean).join(", ")}</p>
+        <p className="text-xs text-muted lg:text-sm">{[t(p.locality, lang), city].filter(Boolean).join(", ")}</p>
         {facts.length > 0 && (
-          <ul className="mt-1 space-y-0.5 text-xs">
+          <ul className="mt-1 space-y-0.5 text-xs lg:text-sm">
             {facts.map((f, i) => (
               <li key={i}>
                 <span className="text-muted">{t(f.label, lang)}:</span> {t(f.value, lang)}
@@ -70,26 +75,45 @@ export function ProjectCard({ p, ctx, lang, dict, inRow }: { p: ProjectT; ctx: C
             ))}
           </ul>
         )}
-        <div className="mt-auto grid gap-1.5 pt-2 text-xs font-medium">
-          <Link href={href} className="rounded-lg border border-brand px-2 py-1.5 text-center text-brand">
-            {dict.card.view}
-          </Link>
-          <a href={priceLink(ctx.settings, p, lang, city, configs)} target="_blank" rel="noopener" className="flex items-center justify-center gap-1 rounded-lg bg-wa px-2 py-1.5 text-wa-ink">
+        <div className="mt-auto grid gap-2 pt-3">
+          <ButtonLink href={href} variant="outline" size="sm" block>{dict.card.view}</ButtonLink>
+          <ButtonLink href={priceLink(ctx.settings, p, lang, city, configs)} external variant="wa" size="sm" block>
             <WaIcon className="size-3.5" /> {dict.card.price}
-          </a>
+          </ButtonLink>
         </div>
       </div>
-    </article>
+    </Card>
+  );
+}
+
+/** Embedded Google map with the pin (no API key), lazy so it costs nothing above the fold. Dark-tinted to match theme. */
+export function MapPreview({ lat, lng, query, title, address, openLabel }: { lat?: number | null; lng?: number | null; query: string; title: string; address?: string; openLabel: string }) {
+  const q = lat != null && lng != null ? `${lat},${lng}` : query;
+  const open = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+  return (
+    <Card className="overflow-hidden">
+      <iframe
+        src={`https://maps.google.com/maps?q=${encodeURIComponent(q)}&z=15&output=embed`}
+        title={title}
+        loading="lazy"
+        referrerPolicy="no-referrer-when-downgrade"
+        className="block aspect-[4/3] w-full border-0 [filter:invert(0.9)_hue-rotate(180deg)_saturate(0.7)] sm:aspect-[21/9]"
+      />
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3 lg:p-4">
+        {address && <p className="text-sm lg:text-base">📍 {address}</p>}
+        <ButtonLink href={open} external variant="outline" size="sm">{openLabel} ↗</ButtonLink>
+      </div>
+    </Card>
   );
 }
 
 export function Breadcrumb({ items }: { items: { name: string; href?: string }[] }) {
   return (
-    <nav aria-label="Breadcrumb" className="mb-3 text-xs text-muted">
+    <nav aria-label="Breadcrumb" className="mb-3 text-xs text-muted lg:text-sm">
       {items.map((it, i) => (
         <span key={i}>
           {i > 0 && " / "}
-          {it.href ? <Link href={it.href} className="underline-offset-2 hover:underline">{it.name}</Link> : <span className="text-ink">{it.name}</span>}
+          {it.href ? <Link href={it.href} className="hover:text-accent">{it.name}</Link> : <span className="text-ink">{it.name}</span>}
         </span>
       ))}
     </nav>

@@ -1,53 +1,71 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
-import { deleteDoc, saveDoc } from "@/lib/actions";
+import { useEffect, useState, useTransition } from "react";
+import { saveDoc } from "@/lib/actions";
 import { setIn, type Field, type Tab } from "@/lib/fields";
 import type { L } from "@/lib/i18n";
+import { media } from "@/lib/media";
+import { ActionBar } from "./ActionBar";
+import { Button, ButtonLink, buttonClass, Card, Checkbox, FieldRow, Input, Pill, Select, Textarea } from "@/components/kit";
 
 type V = any; // eslint-disable-line @typescript-eslint/no-explicit-any
-export const input = "w-full rounded-md border border-line bg-surface px-2 py-1.5 text-sm";
-export const btn = "rounded-md border border-line bg-surface px-3 py-1.5 text-sm hover:bg-bg disabled:opacity-50";
-export const btnPrimary = "rounded-md bg-brand px-4 py-1.5 text-sm font-medium text-brand-ink disabled:opacity-50";
 
 export function Upload({ kind, value, onChange }: { kind: "image" | "pdf"; value?: string; onChange: (v: string) => void }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   async function pick(file?: File) {
     if (!file) return;
+    const max = (kind === "pdf" ? 10 : 8) * 1024 * 1024;
+    if (file.size > max) return setErr(`Too large (max ${max / 1024 / 1024} MB)`);
     setBusy(true);
     setErr("");
-    const fd = new FormData();
-    fd.append("file", file);
-    const r = await fetch("/api/upload", { method: "POST", body: fd }).then((r) => r.json()).catch(() => ({ error: "Upload failed" }));
-    setBusy(false);
-    if (r.url) onChange(r.url);
-    else setErr(r.error ?? "Upload failed");
+    try {
+      // 1) our server signs (auth + folder + allowed formats), 2) browser uploads straight to Cloudinary
+      const signed = await fetch("/api/upload", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind }) }).then((r) => r.json());
+      if (!signed.url) throw new Error(signed.error ?? "Upload failed");
+      const fd = new FormData();
+      fd.append("file", file);
+      Object.entries(signed.fields as Record<string, string>).forEach(([k, v]) => fd.append(k, v));
+      const r = await fetch(signed.url, { method: "POST", body: fd }).then((r) => r.json());
+      if (!r.public_id) throw new Error(r.error?.message ?? "Upload failed");
+      onChange(`${r.public_id}.${r.format}`); // store path only; host comes from NEXT_PUBLIC_MEDIA_URL
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
   }
+  const label = busy ? "Uploading…" : value ? "Replace" : kind === "pdf" ? "Upload PDF" : "Upload image";
   return (
-    <div className="flex items-center gap-2">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      {kind === "image" && value && <img src={value} alt="" className="size-12 shrink-0 rounded object-cover" />}
-      <input className={input} value={value ?? ""} onChange={(e) => onChange(e.target.value)} placeholder="URL or upload →" />
-      <label className={`${btn} shrink-0 cursor-pointer`}>
-        {busy ? "…" : "Upload"}
-        <input type="file" hidden accept={kind === "image" ? "image/jpeg,image/png,image/webp,image/avif" : "application/pdf"} onChange={(e) => pick(e.target.files?.[0])} />
+    <div className="flex flex-wrap items-center gap-3">
+      {value && (kind === "image" ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={media(value)} alt="" className="size-16 shrink-0 rounded-lg border border-line object-cover" />
+      ) : (
+        <a href={media(value)} target="_blank" rel="noopener" className="max-w-56 truncate text-sm text-accent hover:underline">📄 {value.split("/").pop()}</a>
+      ))}
+      <label className={buttonClass(value ? "ghost" : "outline", "md", busy ? "pointer-events-none opacity-60" : "")}>
+        {label}
+        <input type="file" hidden disabled={busy} accept={kind === "image" ? "image/jpeg,image/png,image/webp,image/avif" : "application/pdf"} onChange={(e) => (pick(e.target.files?.[0]), (e.target.value = ""))} />
       </label>
+      {value && !busy && <Button variant="danger" size="sm" onClick={() => onChange("")}>Remove</Button>}
       {err && <span className="text-xs text-danger">{err}</span>}
     </div>
   );
 }
 
 function LInput({ value, onChange, long, placeholder }: { value?: L; onChange: (v: L) => void; long?: boolean; placeholder?: L | null }) {
-  const El = long ? "textarea" : "input";
   return (
-    <div className="grid gap-1 sm:grid-cols-2">
-      {(["en", "hi"] as const).map((l) => (
-        <label key={l} className="flex items-start gap-1">
-          <span className="mt-1.5 w-5 text-[10px] font-bold uppercase text-muted">{l}</span>
-          <El className={input} rows={long ? 3 : undefined} value={value?.[l] ?? ""} placeholder={placeholder?.[l] ?? (l === "hi" ? "(falls back to English)" : "")} onChange={(e) => onChange({ en: "", ...value, [l]: e.target.value })} />
-        </label>
-      ))}
+    <div className="grid gap-2 sm:grid-cols-2">
+      {(["en", "hi"] as const).map((l) => {
+        const p = { value: value?.[l] ?? "", placeholder: placeholder?.[l] ?? (l === "hi" ? "(falls back to English)" : ""), onChange: (e: { target: { value: string } }) => onChange({ en: "", ...value, [l]: e.target.value }) };
+        return (
+          <label key={l} className="flex items-start gap-1">
+            <span className="mt-3 w-5 text-[10px] font-bold uppercase text-brand">{l}</span>
+            {long ? <Textarea {...p} /> : <Input {...p} />}
+          </label>
+        );
+      })}
     </div>
   );
 }
@@ -57,29 +75,22 @@ export function FieldView({ f, value, onChange }: { f: Field; value: V; onChange
   switch (f.type) {
     case "text":
     case "url":
-      control = <input className={input} type={f.type} value={value ?? ""} onChange={(e) => onChange(e.target.value)} />;
+      control = <Input type={f.type} value={value ?? ""} onChange={(e) => onChange(e.target.value)} />;
       break;
     case "textarea":
-      control = <textarea className={input} rows={3} value={value ?? ""} onChange={(e) => onChange(e.target.value)} />;
+      control = <Textarea value={value ?? ""} onChange={(e) => onChange(e.target.value)} />;
       break;
     case "number":
-      control = <input className={input} type="number" value={value ?? ""} onChange={(e) => onChange(e.target.value === "" ? undefined : Number(e.target.value))} />;
+      control = <Input type="number" value={value ?? ""} onChange={(e) => onChange(e.target.value === "" ? undefined : Number(e.target.value))} />;
       break;
     case "checkbox":
-      return (
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={!!value} onChange={(e) => onChange(e.target.checked)} /> {f.label}
-        </label>
-      );
+      return <Checkbox label={f.label} checked={!!value} onChange={(e) => onChange(e.target.checked)} />;
     case "L":
       control = <LInput value={value} onChange={onChange} long={f.long} placeholder={f.placeholder} />;
       break;
     case "select":
       control = (
-        <select className={input} value={value ?? ""} onChange={(e) => onChange(e.target.value)}>
-          <option value="">—</option>
-          {f.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
+        <Select value={value ?? ""} onChange={(v) => onChange(v)} aria-label={f.label} options={[{ value: "", label: "—" }, ...f.options]} />
       );
       break;
     case "multi": {
@@ -87,10 +98,7 @@ export function FieldView({ f, value, onChange }: { f: Field; value: V; onChange
       control = (
         <div className="flex flex-wrap gap-x-4 gap-y-1">
           {f.options.map((o) => (
-            <label key={o.value} className="flex items-center gap-1.5 text-sm">
-              <input type="checkbox" checked={arr.includes(o.value)} onChange={(e) => onChange(e.target.checked ? [...arr, o.value] : arr.filter((x) => x !== o.value))} />
-              {o.label}
-            </label>
+            <Checkbox key={o.value} label={o.label} checked={arr.includes(o.value)} onChange={(e) => onChange(e.target.checked ? [...arr, o.value] : arr.filter((x) => x !== o.value))} />
           ))}
         </div>
       );
@@ -102,9 +110,9 @@ export function FieldView({ f, value, onChange }: { f: Field; value: V; onChange
       break;
     case "group":
       control = (
-        <div className="grid gap-3 rounded-md border border-line p-3">
+        <Card className="grid gap-3 p-3">
           {f.of.map((c) => <FieldView key={c.k} f={c} value={value?.[c.k]} onChange={(v) => onChange(setIn(value ?? {}, [c.k], v))} />)}
-        </div>
+        </Card>
       );
       break;
     case "list": {
@@ -118,8 +126,8 @@ export function FieldView({ f, value, onChange }: { f: Field; value: V; onChange
       control = (
         <div className="grid gap-2">
           {items.map((item, i) => (
-            <div key={i} className="flex gap-2 rounded-md border border-line bg-bg p-2">
-              <div className="grid flex-1 gap-2">
+            <Card key={i} className="flex items-start gap-2 p-3">
+              <div className="grid flex-1 content-start gap-2">
                 {scalar ? (
                   <FieldView f={{ ...f.of[0], label: "" } as Field} value={item} onChange={(v) => onChange(setIn(items, [i], v))} />
                 ) : (
@@ -127,72 +135,72 @@ export function FieldView({ f, value, onChange }: { f: Field; value: V; onChange
                 )}
               </div>
               <div className="flex flex-col gap-1">
-                <button type="button" className={btn} disabled={i === 0} onClick={() => move(i, -1)} aria-label="Move up">↑</button>
-                <button type="button" className={btn} disabled={i === items.length - 1} onClick={() => move(i, 1)} aria-label="Move down">↓</button>
-                <button type="button" className={btn} onClick={() => onChange(items.filter((_, j) => j !== i))} aria-label="Remove">✕</button>
+                <Button variant="ghost" size="sm" disabled={i === 0} onClick={() => move(i, -1)} aria-label="Move up">↑</Button>
+                <Button variant="ghost" size="sm" disabled={i === items.length - 1} onClick={() => move(i, 1)} aria-label="Move down">↓</Button>
+                <Button variant="danger" size="sm" onClick={() => onChange(items.filter((_, j) => j !== i))} aria-label="Remove">✕</Button>
               </div>
-            </div>
+            </Card>
           ))}
-          <button type="button" className={`${btn} justify-self-start`} onClick={() => onChange([...items, scalar ? (f.of[0].type === "L" ? { en: "" } : "") : {}])}>
+          <Button variant="ghost" size="sm" className="justify-self-start" onClick={() => onChange([...items, scalar ? (f.of[0].type === "L" ? { en: "" } : "") : {}])}>
             + Add
-          </button>
+          </Button>
         </div>
       );
       break;
     }
   }
-  return (
-    <div className="grid gap-1">
-      {f.label && <span className="text-sm font-medium">{f.label}</span>}
-      {control}
-      {f.help && <span className="text-xs text-muted">{f.help}</span>}
-    </div>
-  );
+  return <FieldRow label={f.label} help={f.help}>{control}</FieldRow>;
 }
 
 /** Generic editor: tabs of fields → saveDoc(entity, id, data). */
-export function DocForm({ entity, id, initial, tabs, back, viewUrl }: { entity: string; id: string | null; initial: V; tabs: Tab[]; back?: string; viewUrl?: string }) {
+export function DocForm({ entity, id, initial, tabs, title, back, viewUrl }: { entity: string; id: string | null; initial: V; tabs: Tab[]; title: string; back?: { href: string; label: string }; viewUrl?: string }) {
   const router = useRouter();
   const [data, setData] = useState<V>(initial);
   const [tab, setTab] = useState(0);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
   const dirty = JSON.stringify(data) !== JSON.stringify(initial);
+  const isNew = !id && !!back; // singletons (settings) have no id before first save but aren't "new"
+
+  // warn before closing/reloading the tab with unsaved edits
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    addEventListener("beforeunload", warn);
+    return () => removeEventListener("beforeunload", warn);
+  }, [dirty]);
 
   const save = () =>
     start(async () => {
       const r = await saveDoc(entity, id, data);
-      setMsg(r.ok ? { ok: true, text: "Saved" } : { ok: false, text: r.error });
-      if (r.ok && !id && back && r.id) router.replace(`${back}/${r.id}`);
+      setMsg(r.ok ? { ok: true, text: "✓ Saved" } : { ok: false, text: r.error });
+      if (r.ok && !id && back && r.id) router.replace(`${back.href}/${r.id}`);
       else if (r.ok) router.refresh();
     });
-  const remove = () =>
-    start(async () => {
-      if (!id || !confirm("Delete permanently?")) return;
-      const r = await deleteDoc(entity, id);
-      if (r.ok && back) router.replace(back);
-      else if (!r.ok) setMsg({ ok: false, text: r.error });
-    });
+
+  const status = pending ? (
+    <span className="text-muted">Saving…</span>
+  ) : dirty ? (
+    <span className="text-accent">● Unsaved changes</span>
+  ) : msg ? (
+    <span className={msg.ok ? "text-muted" : "text-danger"}>{msg.text}</span>
+  ) : null;
 
   return (
     <div className="grid gap-4">
+      <ActionBar title={title} back={back} status={status}>
+        {viewUrl && <ButtonLink href={viewUrl} external variant="ghost">View ↗</ButtonLink>}
+        <Button disabled={pending || (!dirty && !!id)} onClick={save}>{isNew ? "Create" : "Save changes"}</Button>
+      </ActionBar>
       {tabs.length > 1 && (
-        <div className="flex flex-wrap gap-1 border-b border-line">
+        <div className="flex flex-wrap gap-2">
           {tabs.map((tb, i) => (
-            <button key={tb.name} type="button" onClick={() => setTab(i)} className={`rounded-t-md px-3 py-1.5 text-sm ${i === tab ? "bg-surface font-medium shadow-[0_1px_0_var(--surface)]" : "text-muted"}`}>
-              {tb.name}
-            </button>
+            <Pill key={tb.name} active={i === tab} onClick={() => setTab(i)}>{tb.name}</Pill>
           ))}
         </div>
       )}
       <div className="grid gap-4">
         {tabs[tab].fields.map((f) => <FieldView key={f.k} f={f} value={data?.[f.k]} onChange={(v) => setData((d: V) => setIn(d, [f.k], v))} />)}
-      </div>
-      <div className="sticky bottom-0 flex items-center gap-2 border-t border-line bg-bg py-3">
-        <button type="button" className={btnPrimary} disabled={pending || (!dirty && !!id)} onClick={save}>{pending ? "Saving…" : "Save"}</button>
-        {viewUrl && <a href={viewUrl} target="_blank" className={btn}>View ↗</a>}
-        {msg && <span className={`text-sm ${msg.ok ? "text-brand" : "text-danger"}`}>{msg.text}</span>}
-        {id && back && <button type="button" className={`${btn} ml-auto text-danger`} disabled={pending} onClick={remove}>Delete</button>}
       </div>
     </div>
   );

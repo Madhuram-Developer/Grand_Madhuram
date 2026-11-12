@@ -1,23 +1,26 @@
-/* Only place colors live. Components use Tailwind tokens: bg-bg, text-ink, bg-brand, ... */
+/* Only place colors live. Black + copper, dark only. Components use Tailwind tokens: bg-bg, text-ink, bg-brand, ... */
 :root {
-  --bg: #fbf8f3;
-  --surface: #ffffff;
-  --ink: #1f1a14;
-  --muted: #6b6257;
-  --line: #e7dfd3;
-  --brand: #8a5a2b;
-  --brand-ink: #ffffff;
-  --accent: #c9a227;
-  --wa: #0e7c3a;
+  color-scheme: dark; /* native controls, scrollbars, select dropdowns render dark */
+  --bg: #0a0a0a;
+  --surface: #141312;
+  --surface-2: #1d1b19; /* hover / raised */
+  --ink: #f2ece5;
+  --muted: #a1978c;
+  --line: #2c2723;
+  --brand: #c47c48; /* copper */
+  --brand-ink: #0a0a0a;
+  --accent: #e3a676; /* light copper: hover, stars, highlights */
+  --wa: #154D37;
   --wa-ink: #ffffff;
-  --badge: #1f1a14cc;
+  --badge: #000000b3;
   --badge-ink: #ffffff;
-  --danger: #b42318;
+  --danger: #f0705f;
 }
 
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
   --color-ink: var(--ink);
   --color-muted: var(--muted);
   --color-line: var(--line);

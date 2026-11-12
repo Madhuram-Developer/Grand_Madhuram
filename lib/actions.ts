@@ -57,7 +57,10 @@ export async function saveDoc(entity: string, id: string | null, data: Record<st
     await db();
     const { _id, __v, createdAt, updatedAt, ...rest } = data; // eslint-disable-line @typescript-eslint/no-unused-vars
     const body = (clean(rest) ?? {}) as Record<string, unknown>;
-    if ("slug" in e.model.schema.paths) body.slug = slugify(String(body.slug || (body.name as { en?: string })?.en || ""));
+    const nameEn = (body.name as { en?: string })?.en || "";
+    if (e.autoSlug) body.slug = slugify(nameEn);
+    else if ("slug" in e.model.schema.paths) body.slug = slugify(String(body.slug || nameEn));
+    if ("slug" in e.model.schema.paths && !body.slug) return { ok: false, error: "Name (English) is required" };
     const doc = e.singleton ? ((await e.model.findOne()) ?? new e.model()) : id ? await e.model.findById(id) : new e.model();
     if (!doc) return { ok: false, error: "Not found" };
     // overwrite (not set) so removed fields really disappear

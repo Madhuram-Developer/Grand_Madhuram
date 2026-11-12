@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import { db } from "../lib/db";
 import { Collection, Landing, Location, Project, ProjectPage, Settings, Testimonial, Type } from "../lib/models";
 
+// ponytail: demo images are absolute placeholder URLs; real uploads store Cloudinary paths (see lib/media.ts)
 const img = (seed: string) => `https://picsum.photos/seed/${seed}/800/600`;
 
 async function main() {
@@ -116,7 +117,9 @@ async function main() {
   const sections = [
     {
       key: "trust",
-      items: [1, 2, 3].map((i) => ({ image: img(`trust-${i}`), alt: { en: `Site ${i}` }, headline: { en: "25 years of trust", hi: "25 साल का भरोसा" }, subline: { en: "5,000+ happy families", hi: "5,000+ खुश परिवार" }, link: "/en/projects" })),
+      title: { en: "25 years of trust", hi: "25 साल का भरोसा" },
+      subtitle: { en: "5,000+ happy families", hi: "5,000+ खुश परिवार" },
+      items: [1, 2, 3].map((i) => ({ image: img(`trust-${i}`), alt: { en: `Site ${i}` }, link: "/en/projects" })),
       stats: [
         { value: "25+", label: { en: "Years", hi: "साल" } },
         { value: "40+", label: { en: "Projects", hi: "प्रोजेक्ट्स" } },

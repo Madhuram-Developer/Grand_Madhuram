@@ -4,7 +4,10 @@
     "projects": "प्रोजेक्ट्स",
     "contact": "संपर्क",
     "switchLang": "English",
-    "allTypes": "सभी"
+    "allTypes": "सभी",
+    "locations": "स्थान",
+    "menu": "मेनू",
+    "follow": "हमें फ़ॉलो करें"
   },
   "card": {
     "view": "प्रॉपर्टी देखें",

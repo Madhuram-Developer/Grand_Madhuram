@@ -4,7 +4,10 @@
     "projects": "Projects",
     "contact": "Contact",
     "switchLang": "हिंदी",
-    "allTypes": "All"
+    "allTypes": "All",
+    "locations": "Locations",
+    "menu": "Menu",
+    "follow": "Follow us"
   },
   "card": {
     "view": "View property",

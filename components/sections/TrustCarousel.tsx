@@ -3,13 +3,14 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Img } from "@/components/ui";
 
-export type Slide = { image: string; alt: string; headline: string; subline: string; link?: string };
+export type Slide = { image: string; alt: string; link?: string };
 
 /**
+ * Images slide; headline + subline stay fixed on top (one message, not repeated per slide).
  * 1 slide = static. 2+ = auto-advance 3s, seamless loop (clone of first at end, snap back without transition),
  * dots, swipe, pause on touch / hidden tab, no autoplay under prefers-reduced-motion.
  */
-export default function TrustCarousel({ slides, stats }: { slides: Slide[]; stats: { value: string; label: string }[] }) {
+export default function TrustCarousel({ slides, headline, subline, stats }: { slides: Slide[]; headline?: string; subline?: string; stats: { value: string; label: string }[] }) {
   const n = slides.length;
   const [i, setI] = useState(0);
   const [anim, setAnim] = useState(true);
@@ -60,11 +61,7 @@ export default function TrustCarousel({ slides, stats }: { slides: Slide[]; stat
           {track.map((s, k) => {
             const inner = (
               <div className="relative aspect-[16/10] sm:aspect-[21/9]">
-                <Img src={s.image} alt={s.alt} fill sizes="(min-width:1024px) 1024px, 100vw" className="object-cover" fetchPriority={k === 0 ? "high" : "low"} loading={k === 0 ? "eager" : "lazy"} />
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-badge to-transparent p-4 text-badge-ink">
-                  <p className="text-lg font-bold sm:text-2xl">{s.headline}</p>
-                  {s.subline && <p className="text-sm">{s.subline}</p>}
-                </div>
+                <Img src={s.image} alt={s.alt} fill sizes="(min-width:1024px) 1152px, 100vw" className="object-cover" fetchPriority={k === 0 ? "high" : "low"} loading={k === 0 ? "eager" : "lazy"} />
               </div>
             );
             return (
@@ -74,8 +71,15 @@ export default function TrustCarousel({ slides, stats }: { slides: Slide[]; stat
             );
           })}
         </div>
+        {(headline || subline) && (
+          // fixed overlay: sits outside the sliding track, so it never moves or repeats
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-badge to-transparent p-4 pr-24 pt-12 text-badge-ink lg:p-8 lg:pr-32">
+            {headline && <p className="text-xl font-bold sm:text-3xl lg:text-4xl">{headline}</p>}
+            {subline && <p className="mt-1 text-sm sm:text-base lg:text-lg">{subline}</p>}
+          </div>
+        )}
         {n > 1 && (
-          <div className="absolute bottom-0 right-1 flex">
+          <div className="absolute bottom-0 right-1 flex lg:bottom-2 lg:right-3">
             {slides.map((_, k) => (
               <button key={k} type="button" onClick={() => go(k)} aria-label={`Slide ${k + 1}`} aria-current={i % n === k} className="grid size-6 place-items-center">
                 <span className={`size-2 rounded-full ${i % n === k ? "bg-badge-ink" : "bg-badge-ink/50"}`} />

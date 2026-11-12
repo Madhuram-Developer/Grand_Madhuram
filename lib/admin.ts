@@ -4,7 +4,7 @@ import { can, type Perm, type SessionUser } from "./auth";
 import { plain } from "./data";
 import { db } from "./db";
 import type { Field, Opt, Tab } from "./fields";
-import { Collection, Location, PROJECT_SECTIONS, Project, ProjectPage, Settings, Testimonial, Type } from "./models";
+import { Collection, Location, PROJECT_SECTIONS, Project, ProjectPage, Settings, Testimonial, Type, withAllSections } from "./models";
 
 type AnyDoc = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 type Entity = {
@@ -18,6 +18,8 @@ type Entity = {
   tabs: () => Promise<Tab[]>;
   blank?: () => Promise<Record<string, unknown>>;
   autoSlug?: boolean; // slug always rebuilt from English name; no slug field in the form
+  prepare?: (doc: AnyDoc) => AnyDoc; // adjust a loaded doc before it reaches the form (e.g. fill missing defaults)
+  listFields?: string; // projection for the list screen: only what label()/sub() read
 };
 
 const en = (v: unknown) => (v as { en?: string } | undefined)?.en ?? "";
@@ -30,10 +32,11 @@ const order: Field = { k: "order", label: "Order", type: "number" };
 async function opts() {
   await db();
   const [locations, types, projects, collections] = await Promise.all([
-    Location.find().sort({ order: 1 }).lean(),
-    Type.find().sort({ order: 1 }).lean(),
-    Project.find().sort({ "name.en": 1 }).lean(),
-    Collection.find().lean(),
+    // dropdown options only need ids + names, not whole documents
+    Location.find().select("name").sort({ order: 1 }).lean(),
+    Type.find().select("name parent").sort({ order: 1 }).lean(),
+    Project.find().select("name").sort({ "name.en": 1 }).lean(),
+    Collection.find().select("name").lean(),
   ]);
   const o = (rows: { _id: unknown; name?: unknown }[]): Opt[] => rows.map((r) => ({ value: String(r._id), label: typeof r.name === "string" ? r.name : en(r.name) }));
   const typeOpts = types.map((x) => {
@@ -46,7 +49,7 @@ async function opts() {
 
 export const ENTITIES: Record<string, Entity> = {
   projects: {
-    model: Project, perm: "projects", tag: "projects", title: "Projects",
+    model: Project, perm: "projects", tag: "projects", title: "Projects", listFields: "name status",
     label: (d) => en(d.name), sub: (d) => String(d.status),
     blank: async () => {
       const page = await ProjectPage.findOne().lean();
@@ -93,7 +96,7 @@ export const ENTITIES: Record<string, Entity> = {
     },
   },
   collections: {
-    model: Collection, perm: "projects", tag: "projects", title: "Collections",
+    model: Collection, perm: "projects", tag: "projects", title: "Collections", listFields: "name projects",
     label: (d) => String(d.name), sub: (d) => `${(d.projects as unknown[])?.length ?? 0} projects`,
     tabs: async () => {
       const o = await opts();
@@ -103,22 +106,24 @@ export const ENTITIES: Record<string, Entity> = {
   "project-page": {
     model: ProjectPage, perm: "projects", tag: "projects", title: "Project page settings", singleton: true,
     label: () => "Project page",
+    // every section appears in the editor (missing ones appended, visible) so nothing is silently absent
+    prepare: (d) => ({ ...d, sections: withAllSections((d.sections ?? []) as { key?: string }[]) }),
     tabs: async () => {
       const o = await opts();
       return [{ name: "Project page", fields: [
-        { k: "sections", label: "Sections (shared titles + order)", type: "list", of: [{ k: "key", label: "Section", type: "select", options: PROJECT_SECTIONS.map((k) => ({ value: k, label: k })) }, L("title", "Title"), { k: "visible", label: "Visible", type: "checkbox" }] },
+        { k: "sections", label: "Sections (shared titles + order)", help: "Empty title = default (e.g. Overview, Floor plans & prices). Untick Visible to hide a section on every project.", type: "list", of: [{ k: "key", label: "Section", type: "select", options: PROJECT_SECTIONS.map((k) => ({ value: k, label: k })) }, L("title", "Title"), { k: "visible", label: "Visible", type: "checkbox" }] },
         { k: "defaultFacts", label: "Default facts for new projects", type: "list", of: [L("label", "Label")] },
         { k: "similar", label: "'Similar projects' collection", type: "select", options: o.collections },
       ] }];
     },
   },
   locations: {
-    model: Location, perm: "taxonomy", tag: "taxonomy", title: "Locations", autoSlug: true,
+    model: Location, perm: "taxonomy", tag: "taxonomy", title: "Locations", autoSlug: true, listFields: "name slug",
     label: (d) => en(d.name), sub: (d) => `/locations/${d.slug}`,
     tabs: async () => [{ name: "Location", fields: [L("name", "Name", { help: "URL is built from the English name automatically" }), { k: "image", label: "Image", type: "image" }, order, L("seoIntro", "Intro text (location page)", { long: true })] }],
   },
   types: {
-    model: Type, perm: "taxonomy", tag: "taxonomy", title: "Types",
+    model: Type, perm: "taxonomy", tag: "taxonomy", title: "Types", listFields: "name parent",
     label: (d) => en(d.name), sub: (d) => (d.parent ? "sub-type" : "top-level"),
     tabs: async () => {
       const o = await opts();
@@ -126,7 +131,7 @@ export const ENTITIES: Record<string, Entity> = {
     },
   },
   testimonials: {
-    model: Testimonial, perm: "testimonials", tag: "testimonials", title: "Testimonials",
+    model: Testimonial, perm: "testimonials", tag: "testimonials", title: "Testimonials", listFields: "name active",
     label: (d) => String(d.name), sub: (d) => (d.active ? "active" : "hidden"),
     blank: async () => ({ active: true, rating: 5 }),
     tabs: async () => {
@@ -160,14 +165,18 @@ export const ENTITIES: Record<string, Entity> = {
 export async function listDocs(entity: string) {
   const e = getEntity(entity)!;
   await db();
-  const rows = plain(await e.model.find().sort(entity === "projects" ? { updatedAt: -1 } : { order: 1, _id: 1 }).lean()) as AnyDoc[];
+  const q = e.model.find().sort(entity === "projects" ? { updatedAt: -1 } : { order: 1, _id: 1 });
+  const rows = plain(await (e.listFields ? q.select(e.listFields) : q).lean()) as AnyDoc[];
   return rows.map((d) => ({ id: d._id, label: e.label(d) || "(untitled)", sub: e.sub?.(d) ?? "" }));
 }
 
 export async function loadDoc(entity: string, id?: string) {
   const e = getEntity(entity)!;
   await db();
-  if (e.singleton) return plain((await e.model.findOne().lean()) ?? {}) as AnyDoc;
+  if (e.singleton) {
+    const doc = plain((await e.model.findOne().lean()) ?? {}) as AnyDoc;
+    return e.prepare ? e.prepare(doc) : doc;
+  }
   if (!id || id === "new") return ((await e.blank?.()) ?? {}) as AnyDoc;
   if (!/^[a-f0-9]{24}$/.test(id)) return null;
   return plain(await e.model.findById(id).lean()) as AnyDoc | null;

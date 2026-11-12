@@ -1,19 +1,12 @@
 // Small shared presentational pieces (server-safe, no hooks).
-import Image, { type ImageProps } from "next/image";
 import Link from "next/link";
 import type { Ctx, ProjectT } from "@/lib/data";
 import { t, type Dict, type Lang } from "@/lib/i18n";
-import { media } from "@/lib/media";
 import { priceLink } from "@/lib/site";
 import { Badge, ButtonLink, Card } from "./kit";
 
-// ponytail: next/image only optimizes whitelisted hosts; anything else renders as-is instead of crashing
-const OPTIMIZABLE = /^(\/|https:\/\/(res\.cloudinary\.com|picsum\.photos)\/)/;
-/** All site images go through here: stored path → full URL via media(), then next/image. */
-export function Img(props: ImageProps & { src: string }) {
-  const src = media(props.src);
-  return <Image {...props} src={src} alt={props.alt} unoptimized={!OPTIMIZABLE.test(src)} />;
-}
+import { Img } from "./Img";
+export { Img };
 
 export function WaIcon({ className = "size-5" }: { className?: string }) {
   return (

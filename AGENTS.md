@@ -55,7 +55,7 @@ Needs `.env.local` (see `.env.example`): `MONGODB_URI`, `AUTH_SECRET`, `NEXT_PUB
 
 ## Conventions (follow these)
 - **Bilingual content**: DB text is `L = { en, hi? }`; always render with `t(value, lang)` (falls back to `en`). Fixed UI strings go in **both** `dictionaries/en.json` and `hi.json`.
-- **Caching**: public reads in `lib/data.ts` use `"use cache"` + `cacheLife("max")` + `cacheTag(...)`. Tags: `settings`, `landing`, `projects`, `taxonomy`, `testimonials`. Any server action that writes must call `updateTag()` for the affected tag(s).
+- **Caching**: public reads in `lib/data.ts` use `"use cache"` + `cacheLife("content")` + `cacheTag(...)`. Tags: `settings`, `landing`, `projects`, `taxonomy`, `testimonials`. Any server action that writes must call `updateTag()` for the affected tag(s).
 - **Admin CRUD is generic**: to add a field, add it to the model in `lib/models.ts` **and** to the entity's field spec in `lib/admin.ts`. No per-entity form code. Saves use `doc.overwrite` + `clean()`, so cleared fields actually clear.
 - **Admin navigation**: grouped, collapsible full-height sidebar (left side) + dashboard both read `NAV` in `lib/admin.ts`. New admin screen = one line there.
 - **Landing sections**: every section gets a centered heading + optional sub-heading via `SectionTitle` (fields `title`/`subtitle`). Headings use the display serif (`font-display`, Playfair; Hindi falls back to Mukta) with a copper italic accent: words wrapped in `*asterisks*`, else the last word (`splitAccent`). New section = add key to `LANDING_SECTIONS`, a `case` in `components/sections/Landing.tsx`, and fields in `app/admin/landing/page.tsx`.
@@ -71,6 +71,14 @@ Needs `.env.local` (see `.env.example`): `MONGODB_URI`, `AUTH_SECRET`, `NEXT_PUB
 - **Images**: use `Img` from `components/ui.tsx` (calls `media()` itself) (auto-unoptimized for non-whitelisted hosts). New remote hosts go in `next.config.ts` `images.remotePatterns` and the `OPTIMIZABLE` regex.
 - **Phone first**: grid wrappers that hold scroll rows need `grid-cols-[minmax(0,1fr)]` or they overflow on phones.
 - Keep it simple: few files, no new dependencies without a strong reason.
+
+## Performance (keep these)
+- **Region**: Vercel functions run in `bom1` (Mumbai, `vercel.json`) because Atlas is in AWS `ap-south-1`. Moving either one apart adds ~200 ms to every query.
+- **Images**: Cloudinary assets load straight from Cloudinary's CDN via the loader in `components/Img.tsx` (`f_auto,q_auto,w_…`). Never render a stored media path with a plain `<img>` at full size; use `Img`, or `mediaThumb()` for small previews (originals are often 1–2 MB).
+- **Admin pages**: `await connection()` first, then run `requirePerm(...)` and the data queries together in one `Promise.all` (the redirect rejects it, so nothing leaks). Don't await auth and then query.
+- **Admin queries**: select only the fields a screen shows (`listFields` on entities, `.select("name")` for dropdowns).
+- **Public cache**: `cacheLife("content")` (custom profile in `next.config.ts`): instant refresh on admin save via `updateTag`, plus a 5-minute re-check so edits made outside this deployment appear.
+- **DB**: one pooled connection per server instance (`lib/db.ts`, `maxPoolSize: 10`, 5 s server selection); a failed connect is not cached.
 
 ## Gotchas (learned the hard way)
 - **No `backdrop-blur` / `backdrop-filter` on sticky/fixed elements**: caused ~1.8s TBT in Lighthouse.

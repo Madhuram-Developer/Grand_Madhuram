@@ -9,6 +9,19 @@ const Seo = new Schema({ title: L, description: L }, { _id: false });
 
 export const PERMISSIONS = ["projects", "taxonomy", "testimonials", "landing", "settings", "analytics", "enquiries"] as const;
 export const PROJECT_SECTIONS = ["overview", "floorPlans", "videos", "documents", "amenities", "location", "similar"] as const;
+/**
+ * Saved project-page layout + every section it's missing, each inserted at its default position (visible),
+ * so a partial layout never hides sections and keeps e.g. "similar" last.
+ */
+export function withAllSections<S extends { key?: string | null }>(saved: S[]): (S | { key: (typeof PROJECT_SECTIONS)[number]; visible: true })[] {
+  const out: (S | { key: (typeof PROJECT_SECTIONS)[number]; visible: true })[] = saved.filter((s) => s.key);
+  PROJECT_SECTIONS.forEach((key, i) => {
+    if (out.some((s) => s.key === key)) return;
+    const at = out.findIndex((s) => PROJECT_SECTIONS.indexOf(s.key as (typeof PROJECT_SECTIONS)[number]) > i);
+    out.splice(at < 0 ? out.length : at, 0, { key, visible: true });
+  });
+  return out;
+}
 export const LANDING_SECTIONS = ["trust", "about", "locations", "topProjects", "types", "testimonials", "enquiry", "contact"] as const;
 
 // ponytail: guards against "OverwriteModelError" on dev HMR

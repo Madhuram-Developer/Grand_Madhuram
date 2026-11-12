@@ -1,14 +1,16 @@
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { DocForm } from "@/components/admin/Form";
 import { getEntity, loadDoc } from "@/lib/admin";
 import { requirePerm } from "@/lib/auth";
 
 export default async function EntityEdit({ params }: PageProps<"/admin/[entity]/[id]">) {
+  await connection(); // per-request page: lets auth + data load in parallel below
   const { entity, id } = await params;
   const e = getEntity(entity);
   if (!e || e.singleton) notFound();
-  await requirePerm(e.perm);
-  const [doc, tabs] = await Promise.all([loadDoc(entity, id), e.tabs()]);
+  // auth + data in parallel saves a DB round trip; requirePerm's redirect rejects the whole Promise.all
+  const [, doc, tabs] = await Promise.all([requirePerm(e.perm), loadDoc(entity, id), e.tabs()]);
   if (!doc) notFound();
   const isNew = id === "new";
   const viewUrl = entity === "projects" && doc.slug && doc.status === "published" ? `/en/projects/${doc.slug}` : undefined;

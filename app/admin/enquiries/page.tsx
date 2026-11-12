@@ -1,4 +1,5 @@
 import { ActionBar } from "@/components/admin/ActionBar";
+import { connection } from "next/server";
 import { EnquiryActions } from "@/components/admin/EnquiryActions";
 import { Card, Pill } from "@/components/kit";
 import { requirePerm } from "@/lib/auth";
@@ -11,8 +12,9 @@ const when = (d: string) => new Date(d).toLocaleString("en-IN", { day: "numeric"
 
 /** Inbox for the landing page "Get in touch" form. Newest first; filter by status. */
 export default async function Enquiries({ searchParams }: PageProps<"/admin/enquiries">) {
-  await requirePerm("enquiries");
-  const raw = (await searchParams).status;
+  await connection(); // per-request page: lets auth + data load in parallel below
+  const [, sp] = await Promise.all([requirePerm("enquiries"), searchParams]);
+  const raw = sp.status;
   const status = ENQUIRY_STATUS.find((s) => s === raw);
   await db();
   const [docs, counts] = await Promise.all([

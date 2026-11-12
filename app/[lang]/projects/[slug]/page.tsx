@@ -5,7 +5,8 @@ import { Badge, ButtonLink, Card } from "@/components/kit";
 import { Breadcrumb, cityOf, Img, MapPreview, ProjectCard, Row, WaIcon } from "@/components/ui";
 import { collectionProjects, getCtx, getProject, getProjectPage, getProjects } from "@/lib/data";
 import { getDictionary, hasLang, langs, t, type Lang } from "@/lib/i18n";
-import { media } from "@/lib/media";
+import { cloudinaryUrl, media } from "@/lib/media";
+import { PROJECT_SECTIONS, withAllSections } from "@/lib/models";
 import { alternates, jsonLd, priceLink, siteUrl, ytId } from "@/lib/site";
 
 export async function generateStaticParams() {
@@ -25,7 +26,7 @@ export async function generateMetadata({ params }: PageProps<"/[lang]/projects/[
     title,
     description,
     alternates: alternates(lang, `/projects/${slug}`),
-    openGraph: { title, description, images: img?.url ? [{ url: media(img.url), alt: t(img.alt, lang) }] : undefined },
+    openGraph: { title, description, images: img?.url ? [{ url: cloudinaryUrl(media(img.url), 1200), alt: t(img.alt, lang) }] : undefined },
   };
 }
 
@@ -39,7 +40,10 @@ export default async function ProjectPage({ params }: PageProps<"/[lang]/project
   const s = ctx.settings;
   const city = cityOf(p, ctx, lang);
   const loc = ctx.locations.find((x) => x._id === p.location);
-  const similar = (await collectionProjects(page?.similar)).filter((x) => x._id !== p._id);
+  // 'Similar projects' collection; if none is set, other published projects (same city first)
+  const picked = (await collectionProjects(page?.similar)).filter((x) => x._id !== p._id);
+  const others = (await getProjects()).filter((x) => x._id !== p._id).sort((a, b) => Number(b.location === p.location) - Number(a.location === p.location));
+  const similar = (picked.length ? picked : others).slice(0, 8);
   const ytVideos = (p.videos ?? []).map((v) => ({ ...v, id: ytId(v.youtubeUrl ?? "") })).filter((v) => v.id);
   const price = (config = "") => priceLink(s, p, lang, city, config);
 
@@ -127,9 +131,12 @@ export default async function ProjectPage({ params }: PageProps<"/[lang]/project
     similar: similar.length ? <Row>{similar.map((x) => <ProjectCard key={x._id} p={x} ctx={ctx} lang={lang} dict={dict} inRow />)}</Row> : null,
   };
 
-  const sections = (page?.sections ?? [])
-    .filter((sec) => sec.key && sec.visible && !p.hiddenSections?.includes(sec.key) && body[sec.key])
-    .map((sec) => ({ key: sec.key!, title: t(p.sectionTitles?.[sec.key!] ?? sec.title, lang) }));
+  // Order/titles/visibility come from Project page settings; any section not listed there still shows (default order + title)
+  type Key = (typeof PROJECT_SECTIONS)[number];
+  const sections = withAllSections(page?.sections ?? [])
+    .map((sec) => ({ key: sec.key as Key, visible: sec.visible, title: "title" in sec ? sec.title : undefined }))
+    .filter((sec) => sec.visible && !p.hiddenSections?.includes(sec.key) && body[sec.key])
+    .map((sec) => ({ key: sec.key, title: t(p.sectionTitles?.[sec.key], lang) || t(sec.title, lang) || dict.sections[sec.key] }));
 
   const crumbs = [
     { name: dict.nav.home, href: `/${lang}` },
@@ -174,7 +181,7 @@ export default async function ProjectPage({ params }: PageProps<"/[lang]/project
         <div className="-mx-4 mb-4 flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] sm:mx-0 sm:rounded-2xl">
           {p.images.map((img, i) => (
             <div key={i} className="relative aspect-[4/3] w-full shrink-0 snap-center sm:aspect-[16/9]">
-              <Img src={img.url ?? ""} alt={t(img.alt, lang) || `${t(p.name, lang)} ${i + 1}`} fill sizes="(min-width:1024px) 1024px, 100vw" className="object-cover" fetchPriority={i === 0 ? "high" : "low"} loading={i === 0 ? "eager" : "lazy"} />
+              <Img src={img.url ?? ""} alt={t(img.alt, lang) || `${t(p.name, lang)} ${i + 1}`} fill sizes="(min-width:1024px) 1024px, 100vw" className="object-cover" preload={i === 0} fetchPriority={i === 0 ? "high" : "low"} loading={i === 0 ? "eager" : "lazy"} />
               <span className="absolute bottom-2 right-2 rounded bg-badge px-1.5 text-xs text-badge-ink">{i + 1}/{p.images!.length}</span>
             </div>
           ))}

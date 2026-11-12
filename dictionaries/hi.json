@@ -73,5 +73,14 @@
     "privacy": "गोपनीयता नीति",
     "cookies": "कुकी नीति",
     "updated": "अंतिम अपडेट"
+  },
+  "sections": {
+    "overview": "परिचय",
+    "floorPlans": "फ्लोर प्लान और कीमत",
+    "videos": "वीडियो",
+    "documents": "डाउनलोड",
+    "amenities": "सुविधाएं",
+    "location": "लोकेशन",
+    "similar": "मिलते-जुलते प्रोजेक्ट्स"
   }
 }

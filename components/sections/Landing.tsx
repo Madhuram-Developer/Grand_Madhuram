@@ -75,7 +75,9 @@ export default async function Landing({ sections, lang }: { sections: Section[];
           </section>
         );
       case "topProjects": {
-        const list = await collectionProjects(s.collectionId);
+        // chosen collection; if none is set (or it's empty), the newest published projects
+        const picked = await collectionProjects(s.collectionId);
+        const list = picked.length ? picked : projects;
         if (!list.length) return null;
         return (
           <section>

@@ -1,4 +1,5 @@
 import { LandingEditor } from "@/components/admin/Panels";
+import { connection } from "next/server";
 import { requirePerm } from "@/lib/auth";
 import { getDraftLanding, plain } from "@/lib/data";
 import { db } from "@/lib/db";
@@ -12,9 +13,9 @@ const canon = (v: unknown) =>
   JSON.stringify(plain(v), (_, x) => (x && typeof x === "object" && !Array.isArray(x) ? Object.fromEntries(Object.entries(x).sort(([a], [b]) => a.localeCompare(b))) : x));
 
 export default async function LandingPage() {
-  await requirePerm("landing");
+  await connection(); // per-request page: lets auth + data load in parallel below
   await db();
-  const [draft, collections, doc] = await Promise.all([getDraftLanding(), Collection.find().lean(), Landing.findOne().select("draft live publishedAt").lean()]);
+  const [, draft, collections, doc] = await Promise.all([requirePerm("landing"), getDraftLanding(), Collection.find().select("name").lean(), Landing.findOne().select("draft live publishedAt").lean()]);
   // any section key missing from the draft is appended hidden, so it can be turned on
   const sections = [...draft, ...LANDING_SECTIONS.filter((k) => !draft.some((s) => s.key === k)).map((key) => ({ key, visible: false }))];
 

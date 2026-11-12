@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { notFound } from "next/navigation";
 import { ActionBar } from "@/components/admin/ActionBar";
 import { DeleteButton } from "@/components/admin/DeleteButton";
@@ -8,13 +9,13 @@ import { getEntity, listDocs, loadDoc } from "@/lib/admin";
 import { requirePerm } from "@/lib/auth";
 
 export default async function EntityList({ params }: PageProps<"/admin/[entity]">) {
+  await connection(); // per-request page: lets auth + data load in parallel below
   const { entity } = await params;
   const e = getEntity(entity);
   if (!e) notFound();
-  await requirePerm(e.perm);
 
   if (e.singleton) {
-    const [doc, tabs] = await Promise.all([loadDoc(entity), e.tabs()]);
+    const [, doc, tabs] = await Promise.all([requirePerm(e.perm), loadDoc(entity), e.tabs()]);
     return (
       <div className="max-w-4xl">
         <DocForm entity={entity} id={doc?._id ?? null} initial={doc} tabs={tabs} title={e.title} />
@@ -22,7 +23,7 @@ export default async function EntityList({ params }: PageProps<"/admin/[entity]"
     );
   }
 
-  const rows = await listDocs(entity);
+  const [, rows] = await Promise.all([requirePerm(e.perm), listDocs(entity)]);
   return (
     <div className="grid max-w-4xl gap-4">
       <ActionBar title={e.title}>

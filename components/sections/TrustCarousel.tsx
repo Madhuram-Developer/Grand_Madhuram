@@ -61,7 +61,7 @@ export default function TrustCarousel({ slides, headline, subline, stats }: { sl
           {track.map((s, k) => {
             const inner = (
               <div className="relative aspect-[16/10] sm:aspect-[21/9]">
-                <Img src={s.image} alt={s.alt} fill sizes="(min-width:1024px) 1152px, 100vw" className="object-cover" fetchPriority={k === 0 ? "high" : "low"} loading={k === 0 ? "eager" : "lazy"} />
+                <Img src={s.image} alt={s.alt} fill sizes="(min-width:1024px) 1152px, 100vw" className="object-cover" preload={k === 0} fetchPriority={k === 0 ? "high" : "low"} loading={k === 0 ? "eager" : "lazy"} />
               </div>
             );
             return (

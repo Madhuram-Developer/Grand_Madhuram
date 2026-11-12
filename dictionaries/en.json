@@ -73,5 +73,14 @@
     "privacy": "Privacy Policy",
     "cookies": "Cookie Policy",
     "updated": "Last updated"
+  },
+  "sections": {
+    "overview": "Overview",
+    "floorPlans": "Floor plans & prices",
+    "videos": "Videos",
+    "documents": "Downloads",
+    "amenities": "Amenities",
+    "location": "Location",
+    "similar": "Similar projects"
   }
 }

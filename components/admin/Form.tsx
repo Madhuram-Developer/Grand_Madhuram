@@ -1,34 +1,40 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useLayoutEffect, useState, useTransition } from "react";
 import { saveDoc } from "@/lib/actions";
 import { setIn, type Field, type Tab } from "@/lib/fields";
 import type { L } from "@/lib/i18n";
-import { media } from "@/lib/media";
+import { media, mediaThumb } from "@/lib/media";
 import { ActionBar } from "./ActionBar";
 import { Button, ButtonLink, buttonClass, Card, Checkbox, FieldRow, Input, Pill, Select, Textarea } from "@/components/kit";
 
 type V = any; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+const MAX_MB = { image: 8, pdf: 10 };
+const ACCEPT = { image: "image/jpeg,image/png,image/webp,image/avif", pdf: "application/pdf" };
+
+/** 1) our server signs (auth + folder + allowed formats), 2) browser uploads straight to Cloudinary. Returns the stored path. */
+async function uploadFile(kind: "image" | "pdf", file: File): Promise<string> {
+  if (file.size > MAX_MB[kind] * 1024 * 1024) throw new Error(`${file.name}: too large (max ${MAX_MB[kind]} MB)`);
+  const signed = await fetch("/api/upload", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind }) }).then((r) => r.json());
+  if (!signed.url) throw new Error(signed.error ?? "Upload failed");
+  const fd = new FormData();
+  fd.append("file", file);
+  Object.entries(signed.fields as Record<string, string>).forEach(([k, v]) => fd.append(k, v));
+  const r = await fetch(signed.url, { method: "POST", body: fd }).then((r) => r.json());
+  if (!r.public_id) throw new Error(`${file.name}: ${r.error?.message ?? "upload failed"}`);
+  return `${r.public_id}.${r.format}`; // path only; host comes from NEXT_PUBLIC_MEDIA_URL
+}
 
 export function Upload({ kind, value, onChange }: { kind: "image" | "pdf"; value?: string; onChange: (v: string) => void }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   async function pick(file?: File) {
     if (!file) return;
-    const max = (kind === "pdf" ? 10 : 8) * 1024 * 1024;
-    if (file.size > max) return setErr(`Too large (max ${max / 1024 / 1024} MB)`);
     setBusy(true);
     setErr("");
     try {
-      // 1) our server signs (auth + folder + allowed formats), 2) browser uploads straight to Cloudinary
-      const signed = await fetch("/api/upload", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind }) }).then((r) => r.json());
-      if (!signed.url) throw new Error(signed.error ?? "Upload failed");
-      const fd = new FormData();
-      fd.append("file", file);
-      Object.entries(signed.fields as Record<string, string>).forEach(([k, v]) => fd.append(k, v));
-      const r = await fetch(signed.url, { method: "POST", body: fd }).then((r) => r.json());
-      if (!r.public_id) throw new Error(r.error?.message ?? "Upload failed");
-      onChange(`${r.public_id}.${r.format}`); // store path only; host comes from NEXT_PUBLIC_MEDIA_URL
+      onChange(await uploadFile(kind, file));
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -40,17 +46,49 @@ export function Upload({ kind, value, onChange }: { kind: "image" | "pdf"; value
     <div className="flex flex-wrap items-center gap-3">
       {value && (kind === "image" ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={media(value)} alt="" className="size-16 shrink-0 rounded-lg border border-line object-cover" />
+        <img src={mediaThumb(value)} alt="" loading="lazy" className="size-16 shrink-0 rounded-lg border border-line object-cover" />
       ) : (
         <a href={media(value)} target="_blank" rel="noopener" className="max-w-56 truncate text-sm text-accent hover:underline">📄 {value.split("/").pop()}</a>
       ))}
       <label className={buttonClass(value ? "ghost" : "outline", "md", busy ? "pointer-events-none opacity-60" : "")}>
         {label}
-        <input type="file" hidden disabled={busy} accept={kind === "image" ? "image/jpeg,image/png,image/webp,image/avif" : "application/pdf"} onChange={(e) => (pick(e.target.files?.[0]), (e.target.value = ""))} />
+        <input type="file" hidden disabled={busy} accept={ACCEPT[kind]} onChange={(e) => (pick(e.target.files?.[0]), (e.target.value = ""))} />
       </label>
       {value && !busy && <Button variant="danger" size="sm" onClick={() => onChange("")}>Remove</Button>}
       {err && <span className="text-xs text-danger">{err}</span>}
     </div>
+  );
+}
+
+/** Pick many files at once; uploads them one by one and hands back all stored paths (failed files are reported, not lost). */
+function MultiUpload({ kind, onDone }: { kind: "image" | "pdf"; onDone: (files: { path: string; name: string }[]) => void }) {
+  const [progress, setProgress] = useState<string>("");
+  const [errs, setErrs] = useState<string[]>([]);
+  async function pick(list: FileList | null) {
+    const files = [...(list ?? [])];
+    if (!files.length) return;
+    const done: { path: string; name: string }[] = [];
+    const failed: string[] = [];
+    for (const [i, file] of files.entries()) {
+      setProgress(`Uploading ${i + 1} of ${files.length}…`);
+      try {
+        done.push({ path: await uploadFile(kind, file), name: file.name });
+      } catch (e) {
+        failed.push((e as Error).message);
+      }
+    }
+    setProgress("");
+    setErrs(failed);
+    if (done.length) onDone(done);
+  }
+  return (
+    <span className="flex flex-wrap items-center gap-2">
+      <label className={buttonClass("outline", "sm", progress ? "pointer-events-none opacity-60" : "")}>
+        {progress || (kind === "pdf" ? "Upload PDFs (select many)" : "Upload photos (select many)")}
+        <input type="file" hidden multiple disabled={!!progress} accept={ACCEPT[kind]} onChange={(e) => (pick(e.target.files), (e.target.value = ""))} />
+      </label>
+      {errs.map((m) => <span key={m} className="text-xs text-danger">{m}</span>)}
+    </span>
   );
 }
 
@@ -118,6 +156,9 @@ export function FieldView({ f, value, onChange }: { f: Field; value: V; onChange
     case "list": {
       const items: V[] = value ?? [];
       const scalar = f.of.length === 1 && f.of[0].k === "";
+      // lists whose items hold a file (photos, floor plans, PDFs) get a select-many upload that adds one item per file
+      const media = scalar ? undefined : f.of.find((c) => c.type === "image" || c.type === "pdf");
+      const titleKey = f.of.find((c) => c.type === "L" && c.k === "title")?.k;
       const move = (i: number, d: number) => {
         const next = [...items];
         [next[i], next[i + d]] = [next[i + d], next[i]];
@@ -141,9 +182,23 @@ export function FieldView({ f, value, onChange }: { f: Field; value: V; onChange
               </div>
             </Card>
           ))}
-          <Button variant="ghost" size="sm" className="justify-self-start" onClick={() => onChange([...items, scalar ? (f.of[0].type === "L" ? { en: "" } : "") : {}])}>
-            + Add
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => onChange([...items, scalar ? (f.of[0].type === "L" ? { en: "" } : "") : {}])}>
+              + Add
+            </Button>
+            {media && (
+              <MultiUpload
+                kind={media.type as "image" | "pdf"}
+                onDone={(files) =>
+                  onChange([
+                    ...items,
+                    // PDFs get their file name as a starting title; photo alt text is left for the editor
+                    ...files.map((x) => ({ [media.k]: x.path, ...(titleKey ? { [titleKey]: { en: x.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ") } } : {}) })),
+                  ])
+                }
+              />
+            )}
+          </div>
         </div>
       );
       break;
@@ -161,6 +216,18 @@ export function DocForm({ entity, id, initial, tabs, title, back, viewUrl }: { e
   const [pending, start] = useTransition();
   const dirty = JSON.stringify(data) !== JSON.stringify(initial);
   const isNew = !id && !!back; // singletons (settings) have no id before first save but aren't "new"
+
+  // Next keeps visited pages alive (hidden) and restores their state. A "new" form must start empty every time,
+  // so clear it when it's hidden (after Create navigates to the saved item, or when the user leaves).
+  const [blank] = useState(initial); // first value only: a re-render with a new `initial` object must not wipe typing
+  useLayoutEffect(() => {
+    if (!isNew) return;
+    return () => {
+      setData(blank);
+      setTab(0);
+      setMsg(null);
+    };
+  }, [isNew, blank]);
 
   // warn before closing/reloading the tab with unsaved edits
   useEffect(() => {

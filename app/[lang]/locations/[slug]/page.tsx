@@ -9,8 +9,9 @@ import { getDictionary, hasLang, langs, t } from "@/lib/i18n";
 import { alternates, jsonLd, siteUrl, waLink } from "@/lib/site";
 
 export async function generateStaticParams() {
-  const locs = await getLocations();
-  return langs.flatMap((lang) => locs.map((l) => ({ lang, slug: l.slug })));
+  const slugs = (await getLocations()).map((l) => l.slug);
+  // Cache Components fails the build on an empty list (fresh/empty DB): fall back to a placeholder the page 404s.
+  return langs.flatMap((lang) => (slugs.length ? slugs : ["_"]).map((slug) => ({ lang, slug })));
 }
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/locations/[slug]">): Promise<Metadata> {

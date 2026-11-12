@@ -9,12 +9,12 @@ import { alternates, jsonLd, siteUrl } from "@/lib/site";
 
 export async function generateStaticParams() {
   const types = await getTypes();
-  return langs.flatMap((lang) =>
-    types.map((x) => {
-      const parent = types.find((p) => p._id === x.parent);
-      return { lang, slug: parent ? [parent.slug, x.slug] : [x.slug] };
-    }),
-  );
+  const paths = types.map((x) => {
+    const parent = types.find((p) => p._id === x.parent);
+    return parent ? [parent.slug, x.slug] : [x.slug];
+  });
+  // Cache Components fails the build on an empty list (fresh/empty DB): fall back to a placeholder the page 404s.
+  return langs.flatMap((lang) => (paths.length ? paths : [["_"]]).map((slug) => ({ lang, slug })));
 }
 
 async function resolve(lang: string, slug: string[]) {

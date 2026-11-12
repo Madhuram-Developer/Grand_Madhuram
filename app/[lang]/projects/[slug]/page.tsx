@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { LiteYouTube, TrackView } from "@/components/client";
+import { Gallery } from "@/components/Gallery";
 import { Badge, ButtonLink, Card } from "@/components/kit";
 import { Breadcrumb, cityOf, Img, MapPreview, ProjectCard, Row, WaIcon } from "@/components/ui";
 import { collectionProjects, getCtx, getProject, getProjectPage, getProjects } from "@/lib/data";
@@ -176,16 +177,11 @@ export default async function ProjectPage({ params }: PageProps<"/[lang]/project
     <article className="mx-auto max-w-6xl px-4 py-4">
       <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(ld)} />
       <TrackView slug={p.slug} />
-      {/* swipe gallery: native scroll-snap, no JS */}
       {!!p.images?.length && (
-        <div className="-mx-4 mb-4 flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] sm:mx-0 sm:rounded-2xl">
-          {p.images.map((img, i) => (
-            <div key={i} className="relative aspect-[4/3] w-full shrink-0 snap-center sm:aspect-[16/9]">
-              <Img src={img.url ?? ""} alt={t(img.alt, lang) || `${t(p.name, lang)} ${i + 1}`} fill sizes="(min-width:1024px) 1024px, 100vw" className="object-cover" preload={i === 0} fetchPriority={i === 0 ? "high" : "low"} loading={i === 0 ? "eager" : "lazy"} />
-              <span className="absolute bottom-2 right-2 rounded bg-badge px-1.5 text-xs text-badge-ink">{i + 1}/{p.images!.length}</span>
-            </div>
-          ))}
-        </div>
+        <Gallery
+          label={`${t(p.name, lang)} photos`}
+          photos={p.images.filter((img) => img.url).map((img, i) => ({ url: img.url!, alt: t(img.alt, lang) || `${t(p.name, lang)} ${i + 1}` }))}
+        />
       )}
       <Breadcrumb items={crumbs} />
       {t(p.badge, lang) && <Badge className="mb-2">{t(p.badge, lang)}</Badge>}

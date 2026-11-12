@@ -1,41 +1,60 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { Html } from "@/components/Chrome";
+import { AdminNav } from "@/components/admin/Nav";
+import Loading from "./loading";
+import { Html, Logo } from "@/components/Chrome";
+import { Button, ButtonLink } from "@/components/kit";
 import { logout } from "@/lib/actions";
-import { ENTITIES } from "@/lib/admin";
-import { can, getUser } from "@/lib/auth";
+import { navFor } from "@/lib/admin";
+import { getUser } from "@/lib/auth";
 
 export const metadata: Metadata = { title: "Admin · Madhuram", robots: { index: false, follow: false } };
 
-async function Nav() {
+async function TopBar() {
   const u = await getUser();
-  if (!u) return null;
-  const links = [
-    ...Object.entries(ENTITIES).filter(([, e]) => can(u, e.perm)).map(([k, e]) => ({ href: `/admin/${k}`, label: e.title })),
-    ...(can(u, "landing") ? [{ href: "/admin/landing", label: "Landing page" }] : []),
-    ...(can(u, "users") ? [{ href: "/admin/users", label: "Users" }] : []),
-  ];
   return (
-    <nav className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-line bg-surface px-4 py-2 text-sm">
-      <Link href="/admin" className="font-bold text-brand">Madhuram admin</Link>
-      {links.map((l) => <Link key={l.href} href={l.href}>{l.label}</Link>)}
-      <span className="ml-auto text-muted">{u.username}</span>
-      <form action={logout}><button className="underline">Sign out</button></form>
-    </nav>
+    <div className="flex items-center gap-3">
+      <ButtonLink href="/en" external variant="ghost" size="sm">View site ↗</ButtonLink>
+      {u && (
+        <>
+          <span className="text-sm text-muted max-sm:hidden">{u.username}</span>
+          <form action={logout}><Button type="submit" variant="ghost" size="sm">Sign out</Button></form>
+        </>
+      )}
+    </div>
   );
 }
 
-// Every admin page reads the session cookie → request-time; Suspense keeps cacheComponents happy.
+async function Sidebar() {
+  const u = await getUser();
+  return u ? <AdminNav groups={navFor(u)} /> : null;
+}
+
+// Every admin page reads the session cookie → request-time. Each request-time piece has its own <Suspense>;
+// page-level boundaries live in loading.tsx so client navigations between admin screens show a skeleton instantly.
 export default function AdminLayout({ children }: LayoutProps<"/admin">) {
   return (
     <Html lang="en">
-      <Suspense fallback={<div className="h-10 border-b border-line" />}>
-        <Nav />
-      </Suspense>
-      <div className="mx-auto max-w-[1400px] p-4">
-        <Suspense fallback={<p className="text-sm text-muted">Loading…</p>}>{children}</Suspense>
-      </div>
+      <header className="sticky top-0 z-30 border-b border-line bg-bg">
+        <div className="flex h-14 items-center justify-between gap-3 px-4 lg:px-6">
+          <Link href="/admin" className="flex items-center gap-3">
+            <Logo className="h-9 w-auto" />
+            <span className="text-xs font-bold uppercase tracking-[0.25em] text-muted">Admin</span>
+          </Link>
+          <Suspense fallback={null}><TopBar /></Suspense>
+        </div>
+      </header>
+      {/* phones: collapsible menu bar above content. desktop: full-height sidebar pinned left, under the header */}
+      <aside className="px-4 pt-4 lg:fixed lg:bottom-0 lg:left-0 lg:top-14 lg:w-64 lg:overflow-y-auto lg:border-r lg:border-line lg:bg-surface lg:p-0">
+        <Suspense fallback={<div className="h-12 animate-pulse rounded-xl bg-surface lg:h-full lg:rounded-none" />}><Sidebar /></Suspense>
+      </aside>
+      <main className="min-w-0 p-4 lg:ml-64 lg:p-6">
+        <div className="mx-auto max-w-[1280px]">
+          <Suspense fallback={<Loading />}>{children}</Suspense>
+        </div>
+      </main>
     </Html>
   );
 }
+

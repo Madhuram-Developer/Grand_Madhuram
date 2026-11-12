@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Browse } from "@/components/Browse";
+import { Pill } from "@/components/kit";
 import { Breadcrumb } from "@/components/ui";
 import { getProjects, getTypes } from "@/lib/data";
 import { getDictionary, hasLang, langs, t, type Lang } from "@/lib/i18n";
@@ -53,17 +53,17 @@ export default async function TypePage({ params, searchParams }: PageProps<"/[la
   };
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-4">
+    <div className="mx-auto max-w-6xl px-4 py-4">
       <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(ld)} />
       <Breadcrumb items={crumbs} />
-      <h1 className="mb-3 text-2xl font-bold">{t(current.name, lang)}</h1>
+      <h1 className="mb-4 text-2xl font-bold sm:text-3xl lg:text-4xl">{t(current.name, lang)}</h1>
       {subs.length > 0 && (
-        <div className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4">
-          <Link href={`/${lang}/types/${top.slug}`} className={`shrink-0 rounded-full px-3 py-1 text-sm ${!sub ? "bg-brand text-brand-ink" : "border border-line bg-surface"}`}>{dict.nav.allTypes}</Link>
+        <div className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none]">
+          <Pill href={`/${lang}/types/${top.slug}`} active={!sub}>{dict.nav.allTypes}</Pill>
           {subs.map((x) => (
-            <Link key={x._id} href={`/${lang}/types/${top.slug}/${x.slug}`} className={`shrink-0 rounded-full px-3 py-1 text-sm ${sub?._id === x._id ? "bg-brand text-brand-ink" : "border border-line bg-surface"}`}>
+            <Pill key={x._id} href={`/${lang}/types/${top.slug}/${x.slug}`} active={sub?._id === x._id}>
               {t(x.name, lang)}
-            </Link>
+            </Pill>
           ))}
         </div>
       )}

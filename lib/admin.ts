@@ -1,6 +1,6 @@
 import "server-only";
 import type { Model } from "mongoose";
-import type { Perm } from "./auth";
+import { can, type Perm, type SessionUser } from "./auth";
 import { plain } from "./data";
 import { db } from "./db";
 import type { Field, Opt, Tab } from "./fields";
@@ -17,6 +17,7 @@ type Entity = {
   sub?: (d: AnyDoc) => string;
   tabs: () => Promise<Tab[]>;
   blank?: () => Promise<Record<string, unknown>>;
+  autoSlug?: boolean; // slug always rebuilt from English name; no slug field in the form
 };
 
 const en = (v: unknown) => (v as { en?: string } | undefined)?.en ?? "";
@@ -112,9 +113,9 @@ export const ENTITIES: Record<string, Entity> = {
     },
   },
   locations: {
-    model: Location, perm: "taxonomy", tag: "taxonomy", title: "Locations",
-    label: (d) => en(d.name), sub: (d) => String(d.slug),
-    tabs: async () => [{ name: "Location", fields: [L("name", "Name"), slug, { k: "image", label: "Image", type: "image" }, order, L("seoIntro", "Intro text (location page)", { long: true })] }],
+    model: Location, perm: "taxonomy", tag: "taxonomy", title: "Locations", autoSlug: true,
+    label: (d) => en(d.name), sub: (d) => `/locations/${d.slug}`,
+    tabs: async () => [{ name: "Location", fields: [L("name", "Name", { help: "URL is built from the English name automatically" }), { k: "image", label: "Image", type: "image" }, order, L("seoIntro", "Intro text (location page)", { long: true })] }],
   },
   types: {
     model: Type, perm: "taxonomy", tag: "taxonomy", title: "Types",
@@ -140,7 +141,7 @@ export const ENTITIES: Record<string, Entity> = {
       { name: "Contact", fields: [
         { k: "whatsappNumber", label: "WhatsApp number", type: "text", help: "Digits with country code, e.g. 919876543210" },
         { k: "phone", label: "Phone", type: "text" }, { k: "email", label: "Email", type: "text" },
-        L("address", "Address"), geo, L("hours", "Opening hours"), { k: "logo", label: "Logo", type: "image" },
+        L("address", "Address"), geo, L("hours", "Opening hours"),
         { k: "socials", label: "Social links", type: "group", of: ["instagram", "facebook", "youtube", "x", "linkedin"].map((k) => ({ k, label: k, type: "url" as const })) },
       ] },
       { name: "Messages", fields: [
@@ -148,6 +149,10 @@ export const ENTITIES: Record<string, Entity> = {
         L("enquiryMsg", "General enquiry WhatsApp message", { long: true }),
       ] },
       { name: "SEO", fields: [{ ...seo, k: "defaultSeo", label: "Default SEO" }] },
+      { name: "Legal pages", fields: [
+        L("privacyPolicy", "Privacy Policy", { long: true, help: "Empty = built-in default text describing what this site actually collects. A line followed by text becomes a sub-heading. {email} and {phone} are filled from Contact. Have it reviewed before launch." }),
+        L("cookiePolicy", "Cookie Policy", { long: true, help: "Empty = built-in default text. Same formatting rules as above." }),
+      ] },
     ],
   },
 };
@@ -170,3 +175,36 @@ export async function loadDoc(entity: string, id?: string) {
 
 /** Own-key lookup only (entity comes from URLs / client calls). */
 export const getEntity = (k: string) => (Object.hasOwn(ENTITIES, k) ? ENTITIES[k] : undefined);
+
+/**
+ * Admin navigation, grouped by job. Add a new screen = add one line here (sidebar + dashboard both read this).
+ * `perm` null = everyone signed in.
+ */
+type NavItem = { label: string; href: string; perm: Perm | "users" | null; hint?: string };
+export const NAV: { group: string; items: NavItem[] }[] = [
+  { group: "Overview", items: [{ label: "Dashboard", href: "/admin", perm: null }] },
+  { group: "Projects", items: [
+    { label: "All projects", href: "/admin/projects", perm: "projects", hint: "Add, edit, publish" },
+    { label: "Collections", href: "/admin/collections", perm: "projects", hint: "Curated project lists" },
+    { label: "Project page layout", href: "/admin/project-page", perm: "projects", hint: "Section order + titles" },
+  ] },
+  { group: "Leads", items: [
+    { label: "Enquiries", href: "/admin/enquiries", perm: "enquiries", hint: "Get in touch form" },
+  ] },
+  { group: "Home page", items: [
+    { label: "Landing editor", href: "/admin/landing", perm: "landing", hint: "Sections, draft + publish" },
+    { label: "Testimonials", href: "/admin/testimonials", perm: "testimonials", hint: "Buyer reviews" },
+  ] },
+  { group: "Places & types", items: [
+    { label: "Locations", href: "/admin/locations", perm: "taxonomy", hint: "Cities + location pages" },
+    { label: "Property types", href: "/admin/types", perm: "taxonomy", hint: "Residential, plots…" },
+  ] },
+  { group: "Site", items: [
+    { label: "Settings", href: "/admin/settings", perm: "settings", hint: "Contact, WhatsApp, SEO" },
+    { label: "Users", href: "/admin/users", perm: "users", hint: "Admins + access" },
+  ] },
+];
+
+/** NAV filtered to what this user may open; empty groups dropped. */
+export const navFor = (u: SessionUser) =>
+  NAV.map((g) => ({ group: g.group, items: g.items.filter((i) => i.perm === null || can(u, i.perm)).map(({ perm, ...i }) => i) })).filter((g) => g.items.length); // eslint-disable-line @typescript-eslint/no-unused-vars

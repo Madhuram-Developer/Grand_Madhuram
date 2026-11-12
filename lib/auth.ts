@@ -2,6 +2,7 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 import { jwtVerify, SignJWT } from "jose";
 import { cookies } from "next/headers";
+import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { db } from "./db";
@@ -32,6 +33,7 @@ export async function endSession() {
 export const getUser = cache(async (): Promise<SessionUser | null> => {
   const token = (await cookies()).get(COOKIE)?.value;
   if (!token) return null;
+  await connection(); // per-request from here on: token expiry check reads the clock, user is re-read from DB
   try {
     const { payload } = await jwtVerify(token, key(), { algorithms: ["HS256"] });
     await db();

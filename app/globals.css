@@ -1,7 +1,47 @@
 @import "tailwindcss";
 @import "./theme.css";
 
+/* desktop reads bigger: everything is rem-based, so this scales text and spacing together */
+html {
+  font-size: 16px;
+  scroll-behavior: smooth; /* in-page nav (/#locations); Next turns it off for page changes via data-scroll-behavior */
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+/* anchored sections land below the sticky header, not under it */
+[id] {
+  scroll-margin-top: 5rem;
+}
+@media (min-width: 1024px) {
+  [id] {
+    scroll-margin-top: 6rem;
+  }
+}
+/* mobile menu open: no background scroll */
+html.menu-open {
+  overflow: hidden;
+}
+@media (min-width: 1024px) {
+  html {
+    font-size: 17px;
+  }
+}
+@media (min-width: 1440px) {
+  html {
+    font-size: 18px;
+  }
+}
+
 body {
   background: var(--bg);
   color: var(--ink);
 }
+
+::selection {
+  background: var(--brand);
+  color: var(--brand-ink);
+}
+

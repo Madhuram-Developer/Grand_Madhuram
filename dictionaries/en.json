@@ -4,11 +4,15 @@
     "projects": "Projects",
     "contact": "Contact",
     "switchLang": "हिंदी",
-    "allTypes": "All"
+    "allTypes": "All",
+    "locations": "Locations",
+    "menu": "Menu",
+    "follow": "Follow us"
   },
   "card": {
     "view": "View property",
-    "price": "Know price"
+    "price": "Know price",
+    "more": "Show more projects"
   },
   "search": {
     "placeholder": "Search project, locality or city",
@@ -46,5 +50,28 @@
     "download": "Download",
     "size": "sq ft",
     "similar": "Similar projects"
+  },
+  "enquiry": {
+    "name": "Your name",
+    "phone": "Phone / WhatsApp number",
+    "email": "Email (optional)",
+    "project": "Interested in",
+    "anyProject": "Any project",
+    "message": "Message (optional)",
+    "submit": "Send enquiry",
+    "sending": "Sending…",
+    "success": "Thank you! Our team will call you shortly.",
+    "another": "Send another enquiry",
+    "consent": "By sending this you agree to our",
+    "errInvalid": "Please enter your name.",
+    "errPhone": "Please enter a valid phone number.",
+    "errEmail": "Please enter a valid email or leave it empty.",
+    "errLimit": "Too many enquiries from this device. Please try again later or WhatsApp us.",
+    "errServer": "Something went wrong. Please try again or WhatsApp us."
+  },
+  "legal": {
+    "privacy": "Privacy Policy",
+    "cookies": "Cookie Policy",
+    "updated": "Last updated"
   }
 }

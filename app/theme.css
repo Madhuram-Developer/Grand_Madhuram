@@ -1,0 +1,33 @@
+/* Only place colors live. Components use Tailwind tokens: bg-bg, text-ink, bg-brand, ... */
+:root {
+  --bg: #fbf8f3;
+  --surface: #ffffff;
+  --ink: #1f1a14;
+  --muted: #6b6257;
+  --line: #e7dfd3;
+  --brand: #8a5a2b;
+  --brand-ink: #ffffff;
+  --accent: #c9a227;
+  --wa: #0e7c3a;
+  --wa-ink: #ffffff;
+  --badge: #1f1a14cc;
+  --badge-ink: #ffffff;
+  --danger: #b42318;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-brand: var(--brand);
+  --color-brand-ink: var(--brand-ink);
+  --color-accent: var(--accent);
+  --color-wa: var(--wa);
+  --color-wa-ink: var(--wa-ink);
+  --color-badge: var(--badge);
+  --color-badge-ink: var(--badge-ink);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-body), system-ui, sans-serif;
+}

@@ -1,0 +1,50 @@
+{
+  "nav": {
+    "home": "होम",
+    "projects": "प्रोजेक्ट्स",
+    "contact": "संपर्क",
+    "switchLang": "English",
+    "allTypes": "सभी"
+  },
+  "card": {
+    "view": "प्रॉपर्टी देखें",
+    "price": "कीमत जानें"
+  },
+  "search": {
+    "placeholder": "प्रोजेक्ट, इलाका या शहर खोजें",
+    "found": "{n} प्रोजेक्ट मिले"
+  },
+  "filter": {
+    "type": "प्रकार",
+    "location": "स्थान",
+    "bedrooms": "बेडरूम",
+    "budget": "बजट",
+    "all": "सभी"
+  },
+  "contact": {
+    "whatsapp": "व्हाट्सऐप पर बात करें",
+    "call": "कॉल करें"
+  },
+  "location": {
+    "heading": "{city} में प्रोजेक्ट्स",
+    "comingSoon": "प्रोजेक्ट्स जल्द आ रहे हैं",
+    "other": "अन्य स्थान"
+  },
+  "common": {
+    "projects": "प्रोजेक्ट्स"
+  },
+  "sort": {
+    "label": "क्रम",
+    "new": "नए पहले",
+    "name": "नाम अ–ज़"
+  },
+  "project": {
+    "facts": "विवरण",
+    "highlights": "खास बातें",
+    "nearby": "आसपास",
+    "openMap": "गूगल मैप्स में खोलें",
+    "download": "डाउनलोड",
+    "size": "वर्ग फुट",
+    "similar": "मिलते-जुलते प्रोजेक्ट्स"
+  }
+}

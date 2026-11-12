@@ -1,0 +1,50 @@
+{
+  "nav": {
+    "home": "Home",
+    "projects": "Projects",
+    "contact": "Contact",
+    "switchLang": "हिंदी",
+    "allTypes": "All"
+  },
+  "card": {
+    "view": "View property",
+    "price": "Know price"
+  },
+  "search": {
+    "placeholder": "Search project, locality or city",
+    "found": "{n} projects found"
+  },
+  "filter": {
+    "type": "Type",
+    "location": "Location",
+    "bedrooms": "Bedrooms",
+    "budget": "Budget",
+    "all": "All"
+  },
+  "contact": {
+    "whatsapp": "Chat on WhatsApp",
+    "call": "Call"
+  },
+  "location": {
+    "heading": "Projects in {city}",
+    "comingSoon": "Projects coming soon",
+    "other": "Other locations"
+  },
+  "common": {
+    "projects": "projects"
+  },
+  "sort": {
+    "label": "Sort",
+    "new": "Newest",
+    "name": "Name A–Z"
+  },
+  "project": {
+    "facts": "Details",
+    "highlights": "Highlights",
+    "nearby": "Nearby",
+    "openMap": "Open in Google Maps",
+    "download": "Download",
+    "size": "sq ft",
+    "similar": "Similar projects"
+  }
+}

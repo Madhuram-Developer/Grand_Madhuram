@@ -21,6 +21,8 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
     "@type": "RealEstateAgent",
     name: "Madhuram",
     url: `${siteUrl}/${lang}`,
+    logo: `${siteUrl}/logo.png`,
+    image: `${siteUrl}/logo.png`,
     telephone: s?.phone,
     email: s?.email,
     address: t(s?.address, lang),

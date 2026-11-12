@@ -1,11 +1,12 @@
 "use server";
 import bcrypt from "bcryptjs";
 import { updateTag } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getEntity } from "./admin";
 import { endSession, loginBlocked, loginFailed, loginOk, newPassword, requirePerm, startSession } from "./auth";
 import { db } from "./db";
-import { Collection, Landing, PERMISSIONS, User } from "./models";
+import { Collection, Enquiry, ENQUIRY_STATUS, Landing, PERMISSIONS, User } from "./models";
 
 type Result = { ok: true; id?: string; password?: string } | { ok: false; error: string };
 const fail = (e: unknown): Result => ({ ok: false, error: e instanceof Error ? e.message : String(e) });
@@ -168,5 +169,62 @@ export async function discardDraft(): Promise<Result> {
     doc.set("draft.sections", doc.toObject().live?.sections ?? []);
     await doc.save();
   }
+  return { ok: true };
+}
+
+// ---------- enquiries ----------
+// ponytail: in-memory per-IP limit (5 per 10 min, per server instance); move to DB/Redis if spam gets through
+const sent = new Map<string, number[]>();
+const WINDOW = 10 * 60_000;
+function rateLimited(ip: string) {
+  const now = Date.now();
+  const recent = (sent.get(ip) ?? []).filter((t) => now - t < WINDOW);
+  if (recent.length >= 5) return true;
+  sent.set(ip, [...recent, now]);
+  return false;
+}
+
+export type EnquiryState = { ok?: boolean; error?: "invalid" | "phone" | "email" | "limit" | "server" };
+
+/** Public "Get in touch" form. Validates everything server-side; honeypot `website` silently drops bots. */
+export async function submitEnquiry(_: EnquiryState, form: FormData): Promise<EnquiryState> {
+  const get = (k: string, max: number) => String(form.get(k) ?? "").trim().slice(0, max);
+  if (get("website", 100)) return { ok: true }; // bot filled the hidden field: pretend success
+  const name = get("name", 80);
+  const phone = get("phone", 20).replace(/[\s-]/g, "");
+  const email = get("email", 120);
+  if (!name) return { error: "invalid" };
+  if (!/^\+?\d{7,15}$/.test(phone)) return { error: "phone" };
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "email" };
+  const ip = (await headers()).get("x-forwarded-for")?.split(",")[0].trim() || "local";
+  if (rateLimited(ip)) return { error: "limit" };
+  try {
+    await db();
+    await Enquiry.create({
+      name, phone, email: email || undefined,
+      message: get("message", 1000) || undefined,
+      project: get("project", 120) || undefined,
+      lang: get("lang", 2) === "hi" ? "hi" : "en",
+      page: get("page", 200).startsWith("/") ? get("page", 200) : undefined,
+    });
+    return { ok: true };
+  } catch {
+    return { error: "server" };
+  }
+}
+
+export async function setEnquiryStatus(id: string, status: string): Promise<Result> {
+  await requirePerm("enquiries");
+  if (!/^[a-f0-9]{24}$/.test(id) || !(ENQUIRY_STATUS as readonly string[]).includes(status)) return { ok: false, error: "Invalid" };
+  await db();
+  await Enquiry.updateOne({ _id: id }, { status });
+  return { ok: true };
+}
+
+export async function deleteEnquiry(id: string): Promise<Result> {
+  await requirePerm("enquiries");
+  if (!/^[a-f0-9]{24}$/.test(id)) return { ok: false, error: "Invalid" };
+  await db();
+  await Enquiry.deleteOne({ _id: id });
   return { ok: true };
 }

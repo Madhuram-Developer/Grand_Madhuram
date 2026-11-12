@@ -17,9 +17,8 @@ export async function POST(req: Request) {
   if (!u || !(["projects", "taxonomy", "testimonials", "landing", "settings"] as const).some((p) => can(u, p))) {
     return Response.json({ error: "Not signed in" }, { status: 401 });
   }
-  const c = process.env.CLOUDINARY_URL?.match(/^cloudinary:\/\/(\w+):([\w-]+)@([\w-]+)/);
-  if (!c) return Response.json({ error: "Uploads not configured (CLOUDINARY_URL missing)" }, { status: 503 });
-  const [, apiKey, secret, cloud] = c;
+  const { CLOUDINARY_CLOUD_NAME: cloud, CLOUDINARY_API_KEY: apiKey, CLOUDINARY_API_SECRET: secret } = process.env;
+  if (!cloud || !apiKey || !secret) return Response.json({ error: "Uploads not configured (set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET)" }, { status: 503 });
   const kind = (await req.json().catch(() => ({}))).kind === "pdf" ? "pdf" : "image";
   const params = { folder: FOLDER, allowed_formats: FORMATS[kind], timestamp: String(Math.floor(Date.now() / 1000)) };
   return Response.json({

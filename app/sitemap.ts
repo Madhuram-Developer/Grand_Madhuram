@@ -9,6 +9,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const paths: { path: string; lastModified?: string }[] = [
     { path: "" },
     { path: "/projects" },
+    { path: "/privacy" },
+    { path: "/cookies" },
     ...projects.map((p) => ({ path: `/projects/${p.slug}`, lastModified: p.updatedAt })),
     ...locations.filter((l) => used(l._id)).map((l) => ({ path: `/locations/${l.slug}` })), // empty locations excluded
     ...types.filter((x) => used(x._id)).map((x) => {

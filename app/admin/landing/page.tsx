@@ -18,7 +18,10 @@ export default async function LandingPage() {
   // any section key missing from the draft is appended hidden, so it can be turned on
   const sections = [...draft, ...LANDING_SECTIONS.filter((k) => !draft.some((s) => s.key === k)).map((key) => ({ key, visible: false }))];
 
-  const common = [L("title", "Title"), L("subtitle", "Subtitle / text", true)];
+  const common = [
+    { ...L("title", "Heading"), help: "The last word shows in copper italic. To choose the words yourself, wrap them in asterisks: What our *buyers say*" } as Field,
+    L("subtitle", "Sub-heading (small text centered under the heading)", true),
+  ];
   const fieldsByKey: Record<string, Field[]> = {
     trust: [
       L("title", "Headline (stays fixed while images slide)"),
@@ -31,6 +34,7 @@ export default async function LandingPage() {
     topProjects: [...common, { k: "collectionId", label: "Collection to show", type: "select", options: collections.map((c) => ({ value: String(c._id), label: c.name })) }],
     types: common,
     testimonials: common,
+    enquiry: common,
     contact: common,
   };
   return (

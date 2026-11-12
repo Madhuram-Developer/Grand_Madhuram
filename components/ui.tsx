@@ -23,12 +23,42 @@ export function WaIcon({ className = "size-5" }: { className?: string }) {
   );
 }
 
-export function SectionTitle({ title, subtitle }: { title?: string; subtitle?: string }) {
+/**
+ * Split a heading into [before, accent, after]. Admins mark the accent with *asterisks* ("What our *buyers* say");
+ * without them the last word is the accent (none for one-word headings).
+ */
+export function splitAccent(text: string): [string, string, string] {
+  const m = text.match(/^(.*?)\*(.+?)\*(.*)$/);
+  if (m) return [m[1], m[2], m[3]];
+  const i = text.trimEnd().lastIndexOf(" ");
+  return i < 0 ? [text, "", ""] : [text.slice(0, i + 1), text.slice(i + 1).trimEnd(), ""];
+}
+
+// ponytail: self-check, run with `ACCENT_SELFTEST=1 npx tsx components/ui.tsx`
+if (typeof process !== "undefined" && process.env?.ACCENT_SELFTEST) {
+  const eq = (a: unknown, b: unknown) => { if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`${JSON.stringify(a)} !== ${JSON.stringify(b)}`); };
+  eq(splitAccent("What our buyers say"), ["What our buyers ", "say", ""]);
+  eq(splitAccent("What our *buyers* say"), ["What our ", "buyers", " say"]);
+  eq(splitAccent("*Get in touch*"), ["", "Get in touch", ""]);
+  eq(splitAccent("Testimonials"), ["Testimonials", "", ""]);
+  eq(splitAccent("हमसे बात करें"), ["हमसे बात ", "करें", ""]);
+  console.log("accent ok");
+}
+
+/** Centered section heading: display serif with an italic copper accent, muted sub-heading underneath. */
+export function SectionTitle({ title, subtitle, as: H = "h2" }: { title?: string; subtitle?: string; as?: "h1" | "h2" }) {
   if (!title && !subtitle) return null;
+  const [before, accent, after] = splitAccent(title ?? "");
   return (
-    <div className="mb-5">
-      {title && <h2 className="text-xl font-bold sm:text-2xl lg:text-3xl">{title}</h2>}
-      {subtitle && <p className="mt-1 text-sm text-muted lg:text-base">{subtitle}</p>}
+    <div className="mx-auto mb-8 max-w-3xl text-center lg:mb-12">
+      {title && (
+        <H className="font-display text-3xl leading-tight font-normal tracking-tight sm:text-4xl lg:text-5xl">
+          {before}
+          {accent && <em className="text-brand">{accent}</em>}
+          {after}
+        </H>
+      )}
+      {subtitle && <p className="mx-auto mt-3 max-w-2xl text-base leading-relaxed text-muted lg:mt-4 lg:text-lg">{subtitle}</p>}
     </div>
   );
 }
@@ -36,7 +66,8 @@ export function SectionTitle({ title, subtitle }: { title?: string; subtitle?: s
 /** Horizontal scroll row on phones, wraps on desktop. */
 export function Row({ children }: { children: React.ReactNode }) {
   // scroll-px matches px: snap points respect the padding, so the first card keeps its gutter instead of snapping flush left
-  return <div className="-mx-4 flex snap-x scroll-px-4 gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] lg:gap-5">{children}</div>;
+  // auto margins on first/last child: centered when the row fits, normal left-start scrolling when it overflows
+  return <div className="-mx-4 flex snap-x scroll-px-4 gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] lg:gap-5 [&>:first-child]:ml-auto [&>:last-child]:mr-auto">{children}</div>;
 }
 
 export function Grid({ children }: { children: React.ReactNode }) {
@@ -45,7 +76,7 @@ export function Grid({ children }: { children: React.ReactNode }) {
 
 export const cityOf = (p: ProjectT, ctx: Ctx, lang: Lang) => t(ctx.locations.find((l) => l._id === p.location)?.name, lang);
 
-export function ProjectCard({ p, ctx, lang, dict, inRow }: { p: ProjectT; ctx: Ctx; lang: Lang; dict: Dict; inRow?: boolean }) {
+export function ProjectCard({ p, ctx, lang, dict, inRow, heading }: { p: ProjectT; ctx: Ctx; lang: Lang; dict: Dict; inRow?: boolean; heading?: "h2" | "h3" }) {
   const href = `/${lang}/projects/${p.slug}`;
   const city = cityOf(p, ctx, lang);
   const pt = p.types?.map((id) => ctx.types.find((x) => x._id === id)).filter(Boolean) ?? [];
@@ -53,7 +84,7 @@ export function ProjectCard({ p, ctx, lang, dict, inRow }: { p: ProjectT; ctx: C
   const img = p.images?.[0];
   const facts = (p.facts ?? []).filter((f) => f.onCard).slice(0, 3);
   const configs = (p.configs ?? []).map((c) => t(c.label, lang)).join(", ");
-  const H = inRow ? "h3" : "h2"; // rows sit under a section h2; grids sit under the page h1
+  const H = heading ?? (inRow ? "h3" : "h2"); // rows sit under a section h2; page grids sit under the page h1
   return (
     <Card className={`group flex flex-col overflow-hidden transition-colors hover:border-brand ${inRow ? "w-[160px] shrink-0 snap-start sm:w-[220px] lg:w-[260px]" : "w-full"}`}>
       <Link href={href} className="relative block aspect-[4/3] overflow-hidden bg-line">

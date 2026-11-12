@@ -141,7 +141,7 @@ export const ENTITIES: Record<string, Entity> = {
       { name: "Contact", fields: [
         { k: "whatsappNumber", label: "WhatsApp number", type: "text", help: "Digits with country code, e.g. 919876543210" },
         { k: "phone", label: "Phone", type: "text" }, { k: "email", label: "Email", type: "text" },
-        L("address", "Address"), geo, L("hours", "Opening hours"), { k: "logo", label: "Logo", type: "image" },
+        L("address", "Address"), geo, L("hours", "Opening hours"),
         { k: "socials", label: "Social links", type: "group", of: ["instagram", "facebook", "youtube", "x", "linkedin"].map((k) => ({ k, label: k, type: "url" as const })) },
       ] },
       { name: "Messages", fields: [
@@ -149,6 +149,10 @@ export const ENTITIES: Record<string, Entity> = {
         L("enquiryMsg", "General enquiry WhatsApp message", { long: true }),
       ] },
       { name: "SEO", fields: [{ ...seo, k: "defaultSeo", label: "Default SEO" }] },
+      { name: "Legal pages", fields: [
+        L("privacyPolicy", "Privacy Policy", { long: true, help: "Empty = built-in default text describing what this site actually collects. A line followed by text becomes a sub-heading. {email} and {phone} are filled from Contact. Have it reviewed before launch." }),
+        L("cookiePolicy", "Cookie Policy", { long: true, help: "Empty = built-in default text. Same formatting rules as above." }),
+      ] },
     ],
   },
 };
@@ -183,6 +187,9 @@ export const NAV: { group: string; items: NavItem[] }[] = [
     { label: "All projects", href: "/admin/projects", perm: "projects", hint: "Add, edit, publish" },
     { label: "Collections", href: "/admin/collections", perm: "projects", hint: "Curated project lists" },
     { label: "Project page layout", href: "/admin/project-page", perm: "projects", hint: "Section order + titles" },
+  ] },
+  { group: "Leads", items: [
+    { label: "Enquiries", href: "/admin/enquiries", perm: "enquiries", hint: "Get in touch form" },
   ] },
   { group: "Home page", items: [
     { label: "Landing editor", href: "/admin/landing", perm: "landing", hint: "Sections, draft + publish" },

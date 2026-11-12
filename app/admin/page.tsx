@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { LineChart } from "@/components/admin/LineChart";
 import { Alert, Button, Card, Input, Pill } from "@/components/kit";
 import { navFor } from "@/lib/admin";
-import { pageViews, searchData } from "@/lib/analytics";
+import { enquiryCount, pageViews, searchData } from "@/lib/analytics";
 import { can, requireUser } from "@/lib/auth";
 import { getProjects } from "@/lib/data";
 import { eachDay, istDay, parseRange, PRESETS, previous, type Range } from "@/lib/range";
@@ -51,7 +51,9 @@ function RangeBar({ r, today }: { r: Range; today: string }) {
 }
 
 async function Stats({ r }: { r: Range }) {
-  const [views, prevViews, search, projects] = await Promise.all([pageViews(r), pageViews(previous(r)), searchData(r), getProjects()]);
+  const [views, prevViews, search, projects, leads, prevLeads] = await Promise.all([
+    pageViews(r), pageViews(previous(r)), searchData(r), getProjects(), enquiryCount(r), enquiryCount(previous(r)),
+  ]);
   const days = eachDay(r);
   const s = search.state === "ok" ? search : null;
   const prev = s?.prev;
@@ -65,7 +67,8 @@ async function Stats({ r }: { r: Range }) {
       {search.state === "off" && <SetupCard />}
       {search.state === "error" && <Alert>Search Console: {search.message}</Alert>}
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+        <Tile label="Enquiries" value={num.format(leads)} delta={change(leads, prevLeads)} />
         <Tile label="Project page views" value={num.format(views.total)} delta={change(views.total, prevViews.total)} />
         {s && prev && (
           <>

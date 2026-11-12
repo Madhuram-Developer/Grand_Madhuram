@@ -1,8 +1,9 @@
-import { Mukta } from "next/font/google";
+import { Mukta, Playfair_Display } from "next/font/google";
+import Image from "next/image";
 import Link from "next/link";
 import { LangSwitch, MobileMenu, NavLink, NavLinks } from "@/components/client";
 import { ButtonLink } from "@/components/kit";
-import { Img, WaIcon } from "@/components/ui";
+import { WaIcon } from "@/components/ui";
 import { getSettings } from "@/lib/data";
 import { getDictionary, t, type Lang } from "@/lib/i18n";
 import { waLink } from "@/lib/site";
@@ -11,18 +12,22 @@ import "@/app/globals.css";
 // Mukta covers Latin + Devanagari in one family
 // preload off: unicode-range means Devanagari files only download on pages that use them
 const body = Mukta({ variable: "--font-body", subsets: ["latin", "devanagari"], weight: ["400", "700"], display: "swap", preload: false });
+// Display serif for section headings only (regular + italic accent). No Devanagari: Hindi falls back to Mukta via --font-display.
+const heading = Playfair_Display({ variable: "--font-heading", subsets: ["latin"], weight: ["400"], style: ["normal", "italic"], display: "swap", preload: false });
 
 /** <html>/<body> shell shared by every root layout (site, preview, admin). */
 export function Html({ lang, children }: { lang: string; children: React.ReactNode }) {
   return (
-    <html lang={lang} data-scroll-behavior="smooth" className={`${body.variable} antialiased`}>
+    <html lang={lang} data-scroll-behavior="smooth" className={`${body.variable} ${heading.variable} antialiased`}>
       <body className="min-h-dvh font-sans">{children}</body>
     </html>
   );
 }
 
-const Logo = ({ src }: { src?: string | null }) =>
-  src ? <Img src={src} alt="Madhuram" width={140} height={40} className="h-9 w-auto lg:h-10" /> : <span className="text-lg font-bold uppercase tracking-[0.3em] text-brand lg:text-xl">Madhuram</span>;
+/** Brand logo (public/logo.png, 633x422 transparent). Size it with a height class; width follows. */
+export function Logo({ className = "h-12 w-auto", preload }: { className?: string; preload?: boolean }) {
+  return <Image src="/logo.png" alt="Madhuram Developer" width={633} height={422} className={className} preload={preload} sizes="160px" />;
+}
 
 /** Public header + footer + floating WhatsApp. */
 export async function SiteChrome({ lang, children }: { lang: Lang; children: React.ReactNode }) {
@@ -42,7 +47,7 @@ export async function SiteChrome({ lang, children }: { lang: Lang; children: Rea
       <header className="sticky top-0 z-30 border-b border-line bg-bg [.menu-open_&]:z-50">
         <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4 lg:h-20">
           <Link href={`/${lang}`} aria-label={dict.nav.home} className="shrink-0">
-            <Logo src={s?.logo} />
+            <Logo className="h-11 w-auto lg:h-14" preload />
           </Link>
           <nav aria-label="Main" className="ml-auto hidden items-center md:flex">
             <NavLinks items={items} />
@@ -65,7 +70,7 @@ export async function SiteChrome({ lang, children }: { lang: Lang; children: Rea
       <footer className="border-t border-line bg-surface">
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 text-sm sm:grid-cols-3 lg:text-base">
           <div className="grid content-start gap-2">
-            <Logo src={s?.logo} />
+            <Logo className="h-20 w-auto lg:h-24" />
             {t(s?.address, lang) && <p className="text-muted">{t(s?.address, lang)}</p>}
             {t(s?.hours, lang) && <p className="text-xs text-muted lg:text-sm">{t(s?.hours, lang)}</p>}
           </div>
@@ -85,7 +90,11 @@ export async function SiteChrome({ lang, children }: { lang: Lang; children: Rea
             )}
           </div>
         </div>
-        <p className="border-t border-line py-4 text-center text-xs text-muted">© Madhuram</p>
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 border-t border-line px-4 py-4 text-xs text-muted">
+          <span>© Madhuram</span>
+          <Link href={`/${lang}/privacy`} className="hover:text-accent">{dict.legal.privacy}</Link>
+          <Link href={`/${lang}/cookies`} className="hover:text-accent">{dict.legal.cookies}</Link>
+        </div>
       </footer>
       {s?.whatsappNumber && (
         <a href={wa} target="_blank" rel="noopener" aria-label={dict.contact.whatsapp}

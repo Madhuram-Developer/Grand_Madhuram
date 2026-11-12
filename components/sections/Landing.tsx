@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Filter, SearchBar } from "@/components/client";
+import { EnquiryForm, Filter, SearchBar } from "@/components/client";
 import { ButtonLink, Card, Pill } from "@/components/kit";
 import { Img, MapPreview, ProjectCard, Row, SectionTitle, WaIcon } from "@/components/ui";
 import { collectionProjects, getCtx, getProjects, getTestimonials, getLiveLanding } from "@/lib/data";
@@ -38,8 +38,7 @@ export default async function Landing({ sections, lang }: { sections: Section[];
       case "about":
         return (
           <section>
-            {title && <h1 className="text-2xl font-bold sm:text-3xl lg:text-4xl">{title}</h1>}
-            {subtitle && <p className="mb-5 mt-2 text-muted lg:text-lg">{subtitle}</p>}
+            <SectionTitle as="h1" title={title} subtitle={subtitle} />
             <div className="grid grid-cols-[minmax(0,1fr)] gap-3">
               <SearchBar lang={lang} dict={dict} />
               <Filter lang={lang} dict={dict} projects={slim} locations={locations} types={types} showBudget={s.variant !== "noBudget"} />
@@ -81,7 +80,17 @@ export default async function Landing({ sections, lang }: { sections: Section[];
         return (
           <section>
             <SectionTitle title={title} subtitle={subtitle} />
-            <Row>{list.map((p) => <ProjectCard key={p._id} p={p} ctx={ctx} lang={lang} dict={dict} inRow />)}</Row>
+            {/* grid, not a slider: 2×2 (4) on phones/tablets, 4×2 (8) on desktop */}
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-5">
+              {list.slice(0, 8).map((p, i) => (
+                <div key={p._id} className={`flex ${i >= 4 ? "max-lg:hidden" : ""}`}>
+                  <ProjectCard p={p} ctx={ctx} lang={lang} dict={dict} heading="h3" />
+                </div>
+              ))}
+            </div>
+            <div className="mt-6 text-center lg:mt-8">
+              <ButtonLink href={`/${lang}/projects`} variant="outline" size="lg">{dict.card.more} →</ButtonLink>
+            </div>
           </section>
         );
       }
@@ -125,6 +134,15 @@ export default async function Landing({ sections, lang }: { sections: Section[];
                 </Card>
               ))}
             </Row>
+          </section>
+        );
+      case "enquiry":
+        return (
+          <section>
+            <SectionTitle title={title} subtitle={subtitle} />
+            <Card className="mx-auto max-w-2xl p-4 sm:p-6">
+              <EnquiryForm lang={lang} dict={dict} projects={projects.map((p) => t(p.name, lang))} />
+            </Card>
           </section>
         );
       case "contact":

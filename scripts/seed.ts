@@ -126,12 +126,13 @@ async function main() {
         { value: "5,000+", label: { en: "Families", hi: "परिवार" } },
       ],
     },
-    { key: "about", title: { en: "Find your home with Madhuram", hi: "मधुरम के साथ अपना घर खोजें" }, subtitle: { en: "Trusted homes across Rajasthan.", hi: "राजस्थान भर में भरोसेमंद घर।" } },
-    { key: "locations", title: { en: "Projects by location", hi: "स्थान के अनुसार प्रोजेक्ट्स" }, variant: "circles" },
-    { key: "topProjects", title: { en: "Top projects", hi: "टॉप प्रोजेक्ट्स" }, collectionId: top._id },
-    { key: "types", title: { en: "Projects by type", hi: "प्रकार के अनुसार प्रोजेक्ट्स" } },
-    { key: "testimonials", title: { en: "What our buyers say", hi: "हमारे ग्राहक क्या कहते हैं" } },
-    { key: "contact", title: { en: "Contact us", hi: "संपर्क करें" } },
+    { key: "about", title: { en: "Find your *home* with Madhuram", hi: "मधुरम के साथ अपना *घर* खोजें" }, subtitle: { en: "Trusted homes across Rajasthan.", hi: "राजस्थान भर में भरोसेमंद घर।" } },
+    { key: "locations", title: { en: "Projects by *location*", hi: "स्थान के अनुसार *प्रोजेक्ट्स*" }, subtitle: { en: "Explore homes in the cities we build in.", hi: "उन शहरों में घर देखें जहाँ हम बनाते हैं।" }, variant: "circles" },
+    { key: "topProjects", title: { en: "Top *projects*", hi: "टॉप *प्रोजेक्ट्स*" }, subtitle: { en: "Hand-picked homes our buyers love most.", hi: "हमारे खरीदारों के सबसे पसंदीदा घर।" }, collectionId: top._id },
+    { key: "types", title: { en: "Projects by *type*", hi: "प्रकार के अनुसार *प्रोजेक्ट्स*" }, subtitle: { en: "Apartments, villas, plots and commercial spaces.", hi: "अपार्टमेंट, विला, प्लॉट और कमर्शियल स्पेस।" } },
+    { key: "testimonials", title: { en: "What our *buyers say*", hi: "हमारे *ग्राहक* क्या कहते हैं" }, subtitle: { en: "Don't just take our word for it. Hear from the families who chose Madhuram.", hi: "सिर्फ़ हमारी बात न मानें। मधुरम चुनने वाले परिवारों से सुनें।" } },
+    { key: "enquiry", title: { en: "Get in *touch*", hi: "हमसे *बात* करें" }, subtitle: { en: "Tell us what you are looking for and our team will call you back.", hi: "बताइए आप क्या ढूंढ रहे हैं, हमारी टीम आपको कॉल करेगी।" } },
+    { key: "contact", title: { en: "*Contact* us", hi: "*संपर्क* करें" }, subtitle: { en: "Visit our office or reach us on WhatsApp.", hi: "हमारे ऑफिस आएं या व्हाट्सऐप पर संपर्क करें।" } },
   ].map((s) => ({ visible: true, ...s }));
   await Landing.create({ draft: { sections }, live: { sections }, publishedAt: new Date(), publishedBy: "seed" });
 

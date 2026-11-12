@@ -24,7 +24,7 @@ npx tsc --noEmit
 npm run seed                         # demo content; wipes content, keeps users
 npm run create-superadmin -- <name>  # prints one-time password
 ```
-Needs `.env.local` (see `.env.example`): `MONGODB_URI`, `AUTH_SECRET`, `NEXT_PUBLIC_SITE_URL`, `CLOUDINARY_URL` (signs uploads), `NEXT_PUBLIC_MEDIA_URL` (base for every stored media path).
+Needs `.env.local` (see `.env.example`): `MONGODB_URI`, `AUTH_SECRET`, `NEXT_PUBLIC_SITE_URL`, `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` (sign uploads), optional `NEXT_PUBLIC_MEDIA_URL` (media base; `next.config.ts` defaults it from the cloud name).
 
 ## Map
 | Path | Role |
@@ -58,6 +58,9 @@ Needs `.env.local` (see `.env.example`): `MONGODB_URI`, `AUTH_SECRET`, `NEXT_PUB
 - **Caching**: public reads in `lib/data.ts` use `"use cache"` + `cacheLife("max")` + `cacheTag(...)`. Tags: `settings`, `landing`, `projects`, `taxonomy`, `testimonials`. Any server action that writes must call `updateTag()` for the affected tag(s).
 - **Admin CRUD is generic**: to add a field, add it to the model in `lib/models.ts` **and** to the entity's field spec in `lib/admin.ts`. No per-entity form code. Saves use `doc.overwrite` + `clean()`, so cleared fields actually clear.
 - **Admin navigation**: grouped, collapsible full-height sidebar (left side) + dashboard both read `NAV` in `lib/admin.ts`. New admin screen = one line there.
+- **Landing sections**: every section gets a centered heading + optional sub-heading via `SectionTitle` (fields `title`/`subtitle`). Headings use the display serif (`font-display`, Playfair; Hindi falls back to Mukta) with a copper italic accent: words wrapped in `*asterisks*`, else the last word (`splitAccent`). New section = add key to `LANDING_SECTIONS`, a `case` in `components/sections/Landing.tsx`, and fields in `app/admin/landing/page.tsx`.
+- **Enquiries**: public form → `submitEnquiry` (server-validated, honeypot, in-memory per-IP limit) → `Enquiry` model → `/admin/enquiries` (`enquiries` permission).
+- **Legal pages**: `/[lang]/privacy`, `/[lang]/cookies`; text from Settings → Legal pages, else defaults in `lib/legal.ts`. Keep those defaults truthful if you add cookies, trackers or new data collection.
 - **Admin action bar**: every admin screen's title + actions go in `ActionBar` (`components/admin/ActionBar.tsx`), sticky at the top. Main action (Save / Publish / + New) is always rightmost; destructive actions (Discard) sit left of a `Divider`. Delete lives on each row of the list screen (`DeleteButton`), not inside the edit form.
 - **Admin loading**: every admin route segment has a `loading.tsx` (re-exporting `app/admin/loading.tsx`); add one for new admin pages or Next flags "uncached data during navigation".
 - **Permissions**: every admin page and every server action calls `requirePerm(...)` / `requireUser()`. Never rely on hiding UI. Superadmin-only: users. New admin areas need a permission in `PERMISSIONS`.

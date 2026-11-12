@@ -1,10 +1,11 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
+import { submitEnquiry, type EnquiryState } from "@/lib/actions";
 import { BUDGETS, formatBudget, matches, type Query, type Slim, type Taxon } from "@/lib/filter";
 import { t, type Dict, type Lang } from "@/lib/i18n";
-import { Button, ButtonLink, Input, Pill, Select } from "./kit";
+import { Button, ButtonLink, FieldRow, Input, Pill, Select, Textarea } from "./kit";
 
 export function LangSwitch({ lang, label }: { lang: Lang; label: string }) {
   const path = usePathname() ?? `/${lang}`;
@@ -234,4 +235,49 @@ export function TrackView({ slug }: { slug: string }) {
     navigator.sendBeacon?.("/api/track", JSON.stringify({ slug }));
   }, [slug]);
   return null;
+}
+
+/** "Get in touch" form → submitEnquiry server action (validated + rate-limited on the server). */
+export function EnquiryForm({ lang, dict, projects }: { lang: Lang; dict: Dict; projects: string[] }) {
+  const [state, action, pending] = useActionState<EnquiryState, FormData>(submitEnquiry, {});
+  const [project, setProject] = useState("");
+  const [dismissed, setDismissed] = useState<EnquiryState | null>(null); // each submit returns a new state object
+  const e = dict.enquiry;
+  const errors = { invalid: e.errInvalid, phone: e.errPhone, email: e.errEmail, limit: e.errLimit, server: e.errServer };
+  const path = usePathname() ?? "";
+
+  if (state.ok && state !== dismissed)
+    return (
+      <div role="status" className="grid justify-items-center gap-3 py-6 text-center">
+        <span className="grid size-12 place-items-center rounded-full bg-brand text-2xl text-brand-ink" aria-hidden>✓</span>
+        <p className="text-lg font-bold">{e.success}</p>
+        <Button variant="ghost" size="sm" onClick={() => (setDismissed(state), setProject(""))}>{e.another}</Button>
+      </div>
+    );
+
+  return (
+    <form action={action} className="grid gap-4 sm:grid-cols-2">
+      <input type="hidden" name="lang" value={lang} />
+      <input type="hidden" name="page" value={path} />
+      <input type="hidden" name="project" value={project} />
+      {/* honeypot: hidden from people, bots fill it */}
+      <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden className="absolute -left-[9999px] size-px opacity-0" />
+      <FieldRow label={e.name}><Input name="name" required maxLength={80} autoComplete="name" fieldSize="lg" /></FieldRow>
+      <FieldRow label={e.phone}><Input name="phone" type="tel" required inputMode="tel" maxLength={20} autoComplete="tel" fieldSize="lg" placeholder="+91" /></FieldRow>
+      <FieldRow label={e.email}><Input name="email" type="email" maxLength={120} autoComplete="email" fieldSize="lg" /></FieldRow>
+      {projects.length > 0 && (
+        <FieldRow label={e.project}>
+          <Select fieldSize="lg" value={project} onChange={setProject} aria-label={e.project} options={[{ value: "", label: e.anyProject }, ...projects.map((p) => ({ value: p, label: p }))]} />
+        </FieldRow>
+      )}
+      <div className="sm:col-span-2"><FieldRow label={e.message}><Textarea name="message" rows={4} maxLength={1000} /></FieldRow></div>
+      {state.error && <p role="alert" className="text-sm text-danger sm:col-span-2">{errors[state.error]}</p>}
+      <div className="grid gap-2 sm:col-span-2">
+        <Button type="submit" size="lg" block disabled={pending}>{pending ? e.sending : e.submit}</Button>
+        <p className="text-center text-xs text-muted">
+          {e.consent} <Link href={`/${lang}/privacy`} className="text-accent underline-offset-2 hover:underline">{dict.legal.privacy}</Link>.
+        </p>
+      </div>
+    </form>
+  );
 }

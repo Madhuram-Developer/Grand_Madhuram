@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { AdminNav } from "@/components/admin/Nav";
 import Loading from "./loading";
-import { Html } from "@/components/Chrome";
+import { Html, Logo } from "@/components/Chrome";
 import { Button, ButtonLink } from "@/components/kit";
 import { logout } from "@/lib/actions";
 import { navFor } from "@/lib/admin";
@@ -38,7 +38,10 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
     <Html lang="en">
       <header className="sticky top-0 z-30 border-b border-line bg-bg">
         <div className="flex h-14 items-center justify-between gap-3 px-4 lg:px-6">
-          <Link href="/admin" className="font-bold uppercase tracking-[0.25em] text-brand">Madhuram <span className="text-muted">admin</span></Link>
+          <Link href="/admin" className="flex items-center gap-3">
+            <Logo className="h-9 w-auto" />
+            <span className="text-xs font-bold uppercase tracking-[0.25em] text-muted">Admin</span>
+          </Link>
           <Suspense fallback={null}><TopBar /></Suspense>
         </div>
       </header>

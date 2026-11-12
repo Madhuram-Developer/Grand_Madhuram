@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "./db";
 import { gscConfigured, gscQuery, type GscRow } from "./gsc";
-import { PageView } from "./models";
+import { Enquiry, PageView } from "./models";
 import { previous, type Range } from "./range";
 
 /** First-party project page views in a range: per day and per project slug. Live (uncached). */
@@ -17,6 +17,12 @@ export async function pageViews(r: Range) {
     total += x.views;
   }
   return { byDay, bySlug, total };
+}
+
+/** Enquiries received in the range (IST day boundaries). */
+export async function enquiryCount(r: Range) {
+  await db();
+  return Enquiry.countDocuments({ createdAt: { $gte: new Date(`${r.from}T00:00:00+05:30`), $lte: new Date(`${r.to}T23:59:59.999+05:30`) } });
 }
 
 export type Totals = Omit<GscRow, "keys">;

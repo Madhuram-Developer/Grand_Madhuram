@@ -9,8 +9,9 @@ import { media } from "@/lib/media";
 import { alternates, jsonLd, priceLink, siteUrl, ytId } from "@/lib/site";
 
 export async function generateStaticParams() {
-  const projects = await getProjects();
-  return langs.flatMap((lang) => projects.map((p) => ({ lang, slug: p.slug })));
+  const slugs = (await getProjects()).map((p) => p.slug);
+  // Cache Components fails the build on an empty list (fresh/empty DB): fall back to a placeholder the page 404s.
+  return langs.flatMap((lang) => (slugs.length ? slugs : ["_"]).map((slug) => ({ lang, slug })));
 }
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/projects/[slug]">): Promise<Metadata> {

@@ -241,8 +241,7 @@ export function DocForm({ entity, id, initial, tabs, title, back, viewUrl }: { e
     start(async () => {
       const r = await saveDoc(entity, id, data);
       setMsg(r.ok ? { ok: true, text: "✓ Saved" } : { ok: false, text: r.error });
-      if (r.ok && !id && back && r.id) router.replace(`${back.href}/${r.id}`);
-      else if (r.ok) router.refresh();
+      if (r.ok && !id && back && r.id) router.replace(`${back.href}/${r.id}`); // edits: the action already refreshed
     });
 
   const status = pending ? (

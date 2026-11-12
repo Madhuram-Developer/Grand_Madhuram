@@ -4,7 +4,9 @@ import { cacheLife, cacheTag } from "next/cache";
 import { db } from "./db";
 import { Collection, Landing, Location, Project, ProjectPage, Settings, Testimonial, Type } from "./models";
 
-// Cached public reads. Admin saves call updateTag(<tag>) (see lib/actions.ts).
+// Cached public reads, shared across all server instances ("use cache: remote" = Vercel runtime cache;
+// plain "use cache" is per-instance memory, so every cold serverless instance would hit MongoDB again).
+// Admin saves call updateTag(<tag>) (see lib/actions.ts).
 
 /** What a lean doc looks like after a JSON round-trip: ids/dates → strings, Maps → records. */
 export type Plain<T> = T extends Types.ObjectId | Date
@@ -24,14 +26,14 @@ async function load<T>(q: () => Promise<T>) {
 }
 
 export async function getSettings() {
-  "use cache";
+  "use cache: remote";
   cacheLife("content");
   cacheTag("settings");
   return load(() => Settings.findOne().lean());
 }
 
 export async function getLiveLanding() {
-  "use cache";
+  "use cache: remote";
   cacheLife("content");
   cacheTag("landing");
   return (await load(() => Landing.findOne().lean()))?.live?.sections ?? [];
@@ -44,7 +46,7 @@ export async function getDraftLanding() {
 }
 
 export async function getProjects() {
-  "use cache";
+  "use cache: remote";
   cacheLife("content");
   cacheTag("projects");
   return load(() => Project.find({ status: "published" }).sort({ createdAt: -1 }).lean());
@@ -56,7 +58,7 @@ export async function getProject(slug: string) {
 }
 
 export async function getLocations() {
-  "use cache";
+  "use cache: remote";
   cacheLife("content");
   cacheTag("taxonomy");
   return load(() => Location.find().sort({ order: 1 }).lean());
@@ -64,7 +66,7 @@ export async function getLocations() {
 export type LocationT = Awaited<ReturnType<typeof getLocations>>[number];
 
 export async function getTypes() {
-  "use cache";
+  "use cache: remote";
   cacheLife("content");
   cacheTag("taxonomy");
   return load(() => Type.find().sort({ order: 1 }).lean());
@@ -72,21 +74,21 @@ export async function getTypes() {
 export type TypeT = Awaited<ReturnType<typeof getTypes>>[number];
 
 export async function getTestimonials() {
-  "use cache";
+  "use cache: remote";
   cacheLife("content");
   cacheTag("testimonials");
   return load(() => Testimonial.find({ active: true }).sort({ order: 1 }).lean());
 }
 
 export async function getCollections() {
-  "use cache";
+  "use cache: remote";
   cacheLife("content");
   cacheTag("projects");
   return load(() => Collection.find().lean());
 }
 
 export async function getProjectPage() {
-  "use cache";
+  "use cache: remote";
   cacheLife("content");
   cacheTag("projects");
   return load(() => ProjectPage.findOne().lean());

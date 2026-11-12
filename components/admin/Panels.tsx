@@ -1,5 +1,4 @@
 "use client";
-import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { createUser, discardDraft, login, publishLanding, resetPassword, saveDraft, updateUser } from "@/lib/actions";
 import { setIn, type Field } from "@/lib/fields";
@@ -37,7 +36,6 @@ function OneTimePassword({ username, password, onClose }: { username: string; pa
 
 type UserRow = { id: string; username: string; role: string; permissions: string[]; active: boolean; lastLoginAt?: string };
 export function UsersPanel({ users, allPerms }: { users: UserRow[]; allPerms: readonly string[] }) {
-  const router = useRouter();
   const [pending, start] = useTransition();
   const [name, setName] = useState("");
   const [perms, setPerms] = useState<string[]>([]);
@@ -48,7 +46,6 @@ export function UsersPanel({ users, allPerms }: { users: UserRow[]; allPerms: re
       const r = await fn();
       setErr(r.ok ? "" : (r.error ?? "Failed"));
       if (r.ok && r.password && username) setShown({ username, password: r.password });
-      router.refresh();
     });
   const permBoxes = (val: string[], set: (v: string[]) => void) =>
     allPerms.map((p) => (

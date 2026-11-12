@@ -41,7 +41,7 @@ export type GscRow = { keys: string[]; clicks: number; impressions: number; ctr:
  * Throws on API errors so a failure is never cached.
  */
 export async function gscQuery(from: string, to: string, dimension: "" | "date" | "page" | "query", rowLimit = 25): Promise<GscRow[]> {
-  "use cache";
+  "use cache: remote";
   cacheLife("hours");
   cacheTag("gsc");
   const { site } = env();

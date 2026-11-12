@@ -1,6 +1,6 @@
 "use server";
 import bcrypt from "bcryptjs";
-import { updateTag } from "next/cache";
+import { refresh, updateTag } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getEntity } from "./admin";
@@ -68,6 +68,7 @@ export async function saveDoc(entity: string, id: string | null, data: Record<st
     doc.overwrite({ ...body, ...(doc.get("createdAt") ? { createdAt: doc.get("createdAt") } : {}) });
     await doc.save();
     updateTag(e.tag);
+    if (id || e.singleton) refresh(); // send the updated page back with this response (no second client round trip)
     return { ok: true, id: String(doc._id) };
   } catch (err) {
     const msg = (err as { code?: number }).code === 11000 ? "That slug/name is already used" : undefined;
@@ -84,6 +85,7 @@ export async function deleteDoc(entity: string, id: string): Promise<Result> {
   if (entity === "projects") await Collection.updateMany({}, { $pull: { projects: id } });
   updateTag(e.tag);
   if (entity === "projects") updateTag("projects");
+  refresh();
   return { ok: true };
 }
 
@@ -98,6 +100,7 @@ export async function createUser(username: string, permissions: string[]): Promi
   if (await User.exists({ username })) return { ok: false, error: "Username taken" };
   const password = newPassword();
   const u = await User.create({ username, passwordHash: await bcrypt.hash(password, 12), role: "admin", permissions: perms(permissions) });
+  refresh();
   return { ok: true, id: String(u._id), password };
 }
 
@@ -116,6 +119,7 @@ export async function updateUser(id: string, patch: { permissions?: string[]; ac
     if (patch.permissions) u.permissions = perms(patch.permissions);
     if (typeof patch.active === "boolean") u.active = patch.active;
     await u.save();
+    refresh();
     return { ok: true };
   } catch (e) {
     return fail(e);
@@ -128,6 +132,7 @@ export async function resetPassword(id: string): Promise<Result> {
     const password = newPassword();
     u.passwordHash = await bcrypt.hash(password, 12);
     await u.save();
+    refresh();
     return { ok: true, password };
   } catch (e) {
     return fail(e);
@@ -218,6 +223,7 @@ export async function setEnquiryStatus(id: string, status: string): Promise<Resu
   if (!/^[a-f0-9]{24}$/.test(id) || !(ENQUIRY_STATUS as readonly string[]).includes(status)) return { ok: false, error: "Invalid" };
   await db();
   await Enquiry.updateOne({ _id: id }, { status });
+  refresh();
   return { ok: true };
 }
 
@@ -226,5 +232,6 @@ export async function deleteEnquiry(id: string): Promise<Result> {
   if (!/^[a-f0-9]{24}$/.test(id)) return { ok: false, error: "Invalid" };
   await db();
   await Enquiry.deleteOne({ _id: id });
+  refresh();
   return { ok: true };
 }

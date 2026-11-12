@@ -1,5 +1,4 @@
 "use client";
-import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { Button, Select } from "@/components/kit";
 import { deleteEnquiry, setEnquiryStatus } from "@/lib/actions";
@@ -12,7 +11,6 @@ const STATUS = [
 
 /** Status dropdown + delete for one enquiry. Server actions re-check the `enquiries` permission. */
 export function EnquiryActions({ id, status, name }: { id: string; status: string; name: string }) {
-  const router = useRouter();
   const [pending, start] = useTransition();
   return (
     <div className="flex items-center gap-2">
@@ -23,7 +21,7 @@ export function EnquiryActions({ id, status, name }: { id: string; status: strin
         value={status}
         disabled={pending}
         options={STATUS}
-        onChange={(v) => start(async () => { await setEnquiryStatus(id, v); router.refresh(); })}
+        onChange={(v) => start(async () => { await setEnquiryStatus(id, v); })}
       />
       <Button
         variant="danger"
@@ -33,7 +31,6 @@ export function EnquiryActions({ id, status, name }: { id: string; status: strin
         onClick={() => start(async () => {
           if (!confirm(`Delete the enquiry from "${name}" permanently? This cannot be undone.`)) return;
           await deleteEnquiry(id);
-          router.refresh();
         })}
       >
         Delete

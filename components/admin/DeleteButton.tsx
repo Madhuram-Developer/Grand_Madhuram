@@ -1,20 +1,17 @@
 "use client";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/kit";
 import { deleteDoc } from "@/lib/actions";
 
 /** Row-level delete for admin list screens: confirm → server action (permission-checked there) → refresh list. */
 export function DeleteButton({ entity, id, label }: { entity: string; id: string; label: string }) {
-  const router = useRouter();
   const [pending, start] = useTransition();
   const [err, setErr] = useState("");
   const remove = () =>
     start(async () => {
       if (!confirm(`Delete "${label}" permanently? This cannot be undone.`)) return;
       const r = await deleteDoc(entity, id);
-      if (r.ok) router.refresh();
-      else setErr(r.error);
+      if (!r.ok) setErr(r.error); // success: the action refreshes the list in the same response
     });
   return (
     <span className="flex items-center gap-2">

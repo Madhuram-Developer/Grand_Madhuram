@@ -18,6 +18,7 @@ export async function generateMetadata({ params }: LayoutProps<"/[lang]">): Prom
     metadataBase: new URL(siteUrl),
     title: { default: title, template: `%s · Madhuram` },
     description: t(seo?.description, lang),
+    verification: { google: "q7kI6urQAvv7GpFm-EuqrOhdvBrb8Am2q6wcXS4Z1dQ" }, // Search Console
     openGraph: { siteName: "Madhuram Developer", locale: lang === "hi" ? "hi_IN" : "en_IN", type: "website", images: [{ url: "/logo.png", width: 633, height: 422, alt: "Madhuram Developer" }] },
   };
 }
